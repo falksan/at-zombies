@@ -6,7 +6,7 @@
     "https://falksan.github.io/at-zombies/",
     "https://falksan.github.io/at-zombies/index.html"
   ],
-  "scope": "atproto",
+  "scope": "atproto transition:generic",
   "grant_types": [
     "authorization_code",
     "refresh_token"
