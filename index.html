@@ -16,7 +16,8 @@
   .hudbox { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 8px 12px; min-width: 74px; text-align: center; }
   .hudbox .label { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: #9ba8b4; }
   .hudbox span:last-child { font-size: 1.05rem; font-weight: 700; }
-  #gameWrap { position: relative; width: min(100%, 460px); margin: 0 12px; }
+  /* Spielfeld (Hochkant) skaliert so, dass es immer komplett auf den Bildschirm passt */
+  #gameWrap { position: relative; margin: 0 auto; width: min(calc(100% - 24px), 460px, calc((100vh - 235px) * 0.5833)); width: min(calc(100% - 24px), 460px, calc((100dvh - 235px) * 0.5833)); }
   canvas { display: block; width: 100%; border-radius: 14px; background: #0b1220; border: 1px solid #26323a; touch-action: none; }
   #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10, 14, 19, .9); border-radius: 14px; text-align: center; padding: 20px; }
   #overlay[hidden] { display: none; }
@@ -111,9 +112,9 @@ var store = (function () {
 
 /* ============== Spieldaten ============== */
 var TYPE = {
-  walker: { name: 'Walker', hp: 1, score: 25, size: 34, emoji: ['🧟', '🧟‍♀️', '🧟‍♂️'] },
-  runner: { name: 'Läufer', hp: 1, score: 35, size: 32, emoji: ['👻'] },
-  brute:  { name: 'Bruter', hp: 3, score: 50, size: 46, emoji: ['🎃'] }
+  walker: { name: 'Walker', hp: 1, score: 25, color: '#6ab04c', size: 34, emoji: ['🧟', '🧟‍♀️', '🧟‍♂️'] },
+  runner: { name: 'Läufer', hp: 1, score: 35, color: '#c07f3a', size: 32, emoji: ['👻'] },
+  brute:  { name: 'Bruter', hp: 3, score: 50, color: '#3a7d44', size: 46, emoji: ['🎃'] }
 };
 var EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif';
 var DANGER_Y = 560;
