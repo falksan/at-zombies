@@ -20,14 +20,15 @@ GitHub Pages aktivieren (einmalig):
 |---|---|
 | ↔ Barrikade | Dein Paddle – Finger ziehen (oder Maus) bewegt sie |
 | Leuchtkugel | Der Ball – Tippen/Klick wirft ihn ab, fällt er ins Leere: −1 Leben |
-| Walker (grün) | 1 Treffer, +25 Punkte |
-| Läufer (orange) | 1 Treffer, +35 Punkte, zappelt in der Reihe |
-| Bruter (dunkel) | 3 Treffer, +50 Punkte |
+| 🧟 Walker | 1 Treffer, +25 Punkte (gemischte Zombie-Emojis 🧟 🧟‍♀️ 🧟‍♂️) |
+| 👻 Läufer | 1 Treffer, +35 Punkte, zappelt in der Reihe |
+| 🎃 Bruter | 3 Treffer, +50 Punkte |
 | Gefahrenzone (rote Linie) | Erreicht die Horde sie, gibt es −1 Leben und die Horde weicht zurück |
 | Fundstücke | ↔ breitere Barrikade · ● Multi-Ball · ❤ Extra-Leben · 💀 die Horde rückt sofort vor |
 
 Horde komplett erledigt = +50 Punkte, nächste Welle (mehr Reihen, schnellere Horde,
-schnellere Leuchtkugel). Reine Wisch-/Tipp-Steuerung – läuft auf Handy und Desktop.
+schnellere Leuchtkugel). Reine Wisch-/Tipp-Steuerung, Spielfeld im Hochkant-Format –
+optimiert fürs Handy, läuft auch auf dem Desktop.
 
 ## Wie die ATproto-Anbindung funktioniert
 
