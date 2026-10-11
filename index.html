@@ -16,7 +16,7 @@
   .hudbox { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 8px 12px; min-width: 74px; text-align: center; }
   .hudbox .label { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: #9ba8b4; }
   .hudbox span:last-child { font-size: 1.05rem; font-weight: 700; }
-  #gameWrap { position: relative; width: min(100%, 840px); margin: 0 12px; }
+  #gameWrap { position: relative; width: min(100%, 460px); margin: 0 12px; }
   canvas { display: block; width: 100%; border-radius: 14px; background: #0b1220; border: 1px solid #26323a; touch-action: none; }
   #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10, 14, 19, .9); border-radius: 14px; text-align: center; padding: 20px; }
   #overlay[hidden] { display: none; }
@@ -24,7 +24,7 @@
   #ovText { color: #c7d1d9; font-size: .95rem; line-height: 1.7; margin: 0; }
   button { background: #2ea043; color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; font-size: .95rem; font-weight: 600; cursor: pointer; touch-action: manipulation; }
   button.secondary { background: #30363d; }
-  section { width: min(100%, 840px); margin: 14px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 16px; }
+  section { width: min(100%, 460px); margin: 14px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 16px; }
   #authRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   #loginForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; border-radius: 10px; padding: 10px 12px; font-size: .95rem; min-width: 200px; }
@@ -51,10 +51,10 @@
 </div>
 
 <div id="gameWrap">
-  <canvas id="game" width="800" height="520"></canvas>
+  <canvas id="game" width="420" height="720"></canvas>
   <div id="overlay">
     <h2 id="ovTitle">🧟 AT Zombies – Breakout</h2>
-    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>Der Ball erledigt die Horde: Walker +25 · Läufer +35 · Bruter (3 Treffer) +50.<br>Erreicht die Horde die rote Linie: −1 Leben. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
+    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>🧟 Walker +25 · 👻 Läufer +35 · 🎃 Bruter (3 Treffer) +50.<br>Erreicht die Horde die rote Linie: −1 Leben. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
     <button id="btnStart">Los geht's</button>
     <button id="btnSave" class="secondary" hidden>Highscore in mein Repo speichern</button>
   </div>
@@ -95,7 +95,7 @@ var CONFIG = {
   collection: 'dev.atzombies.score'
 };
 
-var W = 800, H = 520;
+var W = 420, H = 720;
 function $(id) { return document.getElementById(id); }
 var canvas = $('game'), ctx = canvas.getContext('2d');
 var overlay = $('overlay');
@@ -111,12 +111,13 @@ var store = (function () {
 
 /* ============== Spieldaten ============== */
 var TYPE = {
-  walker: { name: 'Walker', hp: 1, score: 25, color: '#6ab04c' },
-  runner: { name: 'Läufer', hp: 1, score: 35, color: '#c07f3a' },
-  brute:  { name: 'Bruter', hp: 3, score: 50, color: '#3a7d44' }
+  walker: { name: 'Walker', hp: 1, score: 25, size: 34, emoji: ['🧟', '🧟‍♀️', '🧟‍♂️'] },
+  runner: { name: 'Läufer', hp: 1, score: 35, size: 32, emoji: ['👻'] },
+  brute:  { name: 'Bruter', hp: 3, score: 50, size: 46, emoji: ['🎃'] }
 };
-var DANGER_Y = 424;
-var PADDLE_Y = 478, PADDLE_H = 14, PADDLE_W = 150;
+var EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif';
+var DANGER_Y = 560;
+var PADDLE_Y = 660, PADDLE_H = 14, PADDLE_W = 96;
 var DROP_KINDS = [
   { kind: 'wide',  icon: '↔', chance: 0.40 },
   { kind: 'multi', icon: '●', chance: 0.30 },
@@ -158,15 +159,17 @@ function spawnHorde(w) {
   zombies = [];
   var rows = Math.min(2 + Math.ceil(w / 2), 5);
   for (var r = 0; r < rows; r++) {
-    for (var c = 0; c < 8; c++) {
+    for (var c = 0; c < 5; c++) {
       var type = 'walker';
       var roll = Math.random();
       if (w >= 3 && roll < 0.12) type = 'brute';
       else if (w >= 2 && roll < 0.30) type = 'runner';
+      var emojis = TYPE[type].emoji;
       zombies.push({
-        x: 48 + c * 88, y: 90 + r * 54, w: 70, h: 44,
+        x: 24 + c * 78, y: 116 + r * 60, w: 64, h: 52,
         hp: TYPE[type].hp, maxHp: TYPE[type].hp,
-        type: type, flash: 0, seed: Math.random() * 10
+        type: type, flash: 0, seed: Math.random() * 10,
+        emoji: emojis[Math.floor(Math.random() * emojis.length)]
       });
     }
   }
@@ -387,31 +390,19 @@ var buildings = [];
 
 function drawZombieTile(z) {
   var flash = Date.now() - z.flash < 120;
-  var col = flash ? '#ffffff' : TYPE[z.type].color;
   var wig = z.type === 'runner' ? Math.sin(Date.now() / 300 + z.seed) * 3 : 0;
   var x = z.x + wig, y = z.y, w = z.w, h = z.h;
-  var bw = w * (z.type === 'brute' ? 0.95 : 0.66);
-  var bh = h * 0.72;
-  var bx = x + (w - bw) / 2, by = y + h - bh;
-  /* Körper */
-  ctx.fillStyle = col;
-  ctx.fillRect(bx, by, bw, bh);
-  /* Arme */
-  ctx.strokeStyle = col;
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(bx, by + bh * 0.2); ctx.lineTo(bx - 7, by + bh * 0.55);
-  ctx.moveTo(bx + bw, by + bh * 0.2); ctx.lineTo(bx + bw + 7, by + bh * 0.55);
-  ctx.stroke();
-  /* Kopf */
-  var hr = w * 0.16;
-  ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(x + w / 2, by - hr * 0.4, hr, 0, Math.PI * 2); ctx.fill();
-  /* Augen */
-  ctx.fillStyle = '#c0392b';
-  var ey = by - hr * 0.5;
-  ctx.beginPath(); ctx.arc(x + w / 2 - hr * 0.35, ey, Math.max(1.4, hr * 0.18), 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + w / 2 + hr * 0.35, ey, Math.max(1.4, hr * 0.18), 0, Math.PI * 2); ctx.fill();
+  /* Treffer-Blitz */
+  if (flash) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.fillRect(x - 3, y - 3, w + 6, h + 6);
+  }
+  /* Zombie-Emoji */
+  ctx.font = TYPE[z.type].size + 'px ' + EMOJI_FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(z.emoji, x + w / 2, y + h / 2 + 2);
+  ctx.textBaseline = 'alphabetic';
   /* HP-Balken (Bruter) */
   if (z.hp < z.maxHp) {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -427,9 +418,9 @@ function draw() {
   ctx.fillRect(0, 0, W, 240);
   /* Mond */
   ctx.fillStyle = 'rgba(216, 222, 230, 0.85)';
-  ctx.beginPath(); ctx.arc(700, 60, 24, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(350, 60, 24, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#0b1220';
-  ctx.beginPath(); ctx.arc(689, 53, 20, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(339, 53, 20, 0, Math.PI * 2); ctx.fill();
   /* Skyline */
   ctx.fillStyle = '#0f1722';
   for (var b = 0; b < buildings.length; b++) {
@@ -440,7 +431,7 @@ function draw() {
   ctx.fillStyle = '#1a2417';
   ctx.fillRect(0, 240, W, H - 240);
   ctx.fillStyle = '#23272e';
-  ctx.fillRect(0, 330, W, H - 330);
+  ctx.fillRect(0, 400, W, H - 400);
 
   /* Gefahrenlinie */
   ctx.strokeStyle = 'rgba(224, 82, 82, 0.55)';
@@ -508,7 +499,7 @@ function draw() {
   if (bannerTimer > 0) {
     ctx.globalAlpha = Math.min(1, bannerTimer);
     ctx.fillStyle = '#e6edf3';
-    ctx.font = 'bold 38px system-ui, sans-serif';
+    ctx.font = 'bold 30px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(banner, W / 2, 64);
     ctx.globalAlpha = 1;
