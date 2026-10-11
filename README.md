@@ -1,8 +1,8 @@
 # AT Zombies 🧟
 
-Survival-Browserspiel: Zombies Wellen für Wellen überleben – optional mit Anmeldung über das
-AT Protocol (Bluesky). Highscores werden dann als eigene Records **im Daten-Repo des Spielers**
-gespeichert. Kein Backend, keine eigene Datenbank.
+Rundenbasiertes Zombie-Survival in Ego-Perspektive – optional mit Anmeldung über das
+AT Protocol (Bluesky). Highscores werden dann als eigene Records **im Daten-Repo des
+Spielers** gespeichert. Kein Backend, keine eigene Datenbank.
 
 ## Spielen
 
@@ -12,13 +12,24 @@ GitHub Pages aktivieren (einmalig):
 2. Source: **Deploy from a branch** · Branch: **main** · Ordner: **/(root)** → **Save**
 3. Danach erreichbar unter <https://falksan.github.io/at-zombies/>
 
-## Steuerung
+## Spielprinzip
 
-- **Desktop:** WASD/Pfeiltasten = laufen · Maus = zielen · Klick (halten) = schießen
-- **Handy:** Daumen ziehen = laufen · Zielen & Feuern automatisch
+Du stehst hinter deiner Barrikade am Ende einer Straße. Pro Runde hast du **2 Aktionen**,
+danach ziehen die Zombies weiter. Reine Tipp-Steuerung – läuft auf Handy und Desktop.
 
-Punkte: Kill 10 (Bruter 30), geschaffte Welle +50. Ab Welle 3 tauchen Bruter auf
-(langsamer, halten 3 Treffer aus). Alle 3 Leben weg = Game Over.
+| Aktion | Effekt |
+|---|---|
+| 🎯 Schießen | 80 % Trefferchance auf den vordersten Zombie (40 Schaden), 20 % Kopftreffer (100 Schaden) |
+| 🔄 Nachladen | Magazin (6 Schuss) aus der Reserve füllen (Start: 24 Schuss) |
+| 🔧 Reparieren | Barrikade +25 (max. 100) |
+| 💊 Verbandskasten | +1 Leben (Start: 2 Kits, max. 3 Leben) |
+| 🔎 Spähen | 40 % +8 Munition · 25 % Verbandskasten · 35 % nichts |
+
+**Zombies:** Walker (40 HP, langsam) · Läufer (25 HP, rückt doppelt so schnell vor, ab Runde 4) ·
+Bruter (100 HP, 25 Barrikaden-Schaden, ab Runde 6). Zombies an der Barrikade greifen sie an;
+ist sie gefallen, trifft dich pro Runde 1 Treffer.
+
+**Punkte:** überstandene Runde +10 · Walker +25 · Läufer +35 · Bruter +50
 
 ## Wie die ATproto-Anbindung funktioniert
 
@@ -26,9 +37,9 @@ Punkte: Kill 10 (Bruter 30), geschaffte Welle +50. Ab Welle 3 tauchen Bruter auf
   Tokens liegen in der IndexedDB des Browsers – kein Backend, keine App-Passwords).
 - Die App identifiziert sich über die gehostete `client-metadata.json` (dynamische
   Client-Registrierung; `client_id` muss exakt der gehosteten URL entsprechen).
-- Nach dem Login werden Highscores als Records vom Typ `dev.atzombies.score` per
-  `com.atproto.repo.putRecord` direkt ins Repo des Spielers auf seinem PDS geschrieben –
-  die Daten gehören damit dem Spieler, nicht diesem Spiel.
+- Nach dem Login werden Highscores als Records vom Typ `dev.atzombies.score` (Felder:
+  `score`, `round`, `kills`) per `com.atproto.repo.putRecord` direkt ins Repo des
+  Spielers auf seinem PDS geschrieben – die Daten gehören damit dem Spieler, nicht diesem Spiel.
 - Gespeicherte Scores werden über `com.atproto.repo.listRecords` gelesen und angezeigt.
 
 ### Eigenes PDS betreiben?
