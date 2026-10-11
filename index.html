@@ -122,7 +122,10 @@ var finishedRun = null;
 
 var keys = new Set();
 var mouse = { x: W / 2, y: H / 2, down: false };
-var isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+/* Eingabemodus: wird dynamisch je letzter Eingabe umgeschaltet
+   (Maus bewegt -> Mausmodus, Touch -> Touchmodus mit Auto-Zielen).
+   Vorschlagswert nur fuer Geraete ohne Hover mit Grob-Pointer. */
+var inputMode = (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) ? 'touch' : 'mouse';
 var joy = null;
 
 /* ============== Kernlogik ============== */
@@ -205,7 +208,7 @@ function spawnParticles(z) {
 function fire() {
   if (player.cooldown > 0) return;
   var tx, ty;
-  if (isTouch) {
+  if (inputMode === 'touch') {
     var z = nearestZombie();
     if (!z) return;
     tx = z.x; ty = z.y;
@@ -249,8 +252,9 @@ function update(dt) {
   player.invuln = Math.max(0, player.invuln - dt);
   player.cooldown = Math.max(0, player.cooldown - dt);
 
-  /* Feuern */
-  if (isTouch || mouse.down) fire();
+  /* Feuern: Auto-Feuer nur im Touchmodus (Finger auf dem Bildschirm),
+     im Mausmodus nur bei gehaltener Maustaste */
+  if ((inputMode === 'touch' && joy) || mouse.down) fire();
 
   /* Kugeln bewegen */
   for (var i = bullets.length - 1; i >= 0; i--) {
@@ -345,7 +349,7 @@ function drawPlayer() {
   ctx.fillStyle = '#4da3ff';
   ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2); ctx.fill();
   var ax = mouse.x, ay = mouse.y;
-  if (isTouch) {
+  if (inputMode === 'touch') {
     var z = nearestZombie();
     if (z) { ax = z.x; ay = z.y; } else { ax = player.x; ay = player.y - 10; }
   }
@@ -413,6 +417,7 @@ window.addEventListener('keydown', function (e) {
 window.addEventListener('keyup', function (e) { keys.delete(e.key.toLowerCase()); });
 
 canvas.addEventListener('mousemove', function (e) {
+  inputMode = 'mouse';
   var r = canvas.getBoundingClientRect();
   mouse.x = (e.clientX - r.left) * W / r.width;
   mouse.y = (e.clientY - r.top) * H / r.height;
@@ -422,6 +427,7 @@ window.addEventListener('mouseup', function () { mouse.down = false; });
 
 canvas.addEventListener('touchstart', function (e) {
   e.preventDefault();
+  inputMode = 'touch';
   if (state !== 'playing') return;
   var t = e.touches[0];
   joy = { ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY };
