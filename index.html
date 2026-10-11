@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1117">
+<title>AT Zombies</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0d1117; color: #e6edf3; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+  header { text-align: center; padding: 14px 12px 4px; }
+  h1 { margin: 0; font-size: 1.6rem; letter-spacing: .5px; }
+  .sub { margin: 6px 0 0; color: #9ba8b4; font-size: .9rem; }
+  #hud { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 12px; }
+  .hudbox { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 8px 14px; min-width: 86px; text-align: center; }
+  .hudbox .label { display: block; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: #9ba8b4; }
+  .hudbox span:last-child { font-size: 1.15rem; font-weight: 700; }
+  #gameWrap { position: relative; width: min(100%, 840px); margin: 0 12px; }
+  canvas { display: block; width: 100%; border-radius: 14px; background: #0f1a12; border: 1px solid #26323a; touch-action: none; }
+  #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10, 14, 19, .9); border-radius: 14px; text-align: center; padding: 20px; }
+  #overlay[hidden] { display: none; }
+  #overlay h2 { margin: 0; }
+  #ovText { color: #c7d1d9; font-size: .95rem; line-height: 1.7; margin: 0; }
+  button { background: #2ea043; color: #fff; border: 0; border-radius: 10px; padding: 10px 18px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+  button:hover { background: #3fb950; }
+  button.secondary { background: #30363d; }
+  button.secondary:hover { background: #424a53; }
+  section { width: min(100%, 840px); margin: 14px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 16px; }
+  #authRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  #loginForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; border-radius: 10px; padding: 10px 12px; font-size: .95rem; min-width: 220px; }
+  #userName { font-weight: 600; color: #7ee787; }
+  #status, #authHint { font-size: .85rem; color: #9ba8b4; margin: 8px 0 0; }
+  #authHint { color: #e3b341; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: #9ba8b4; }
+  #scoreList { margin: 8px 0 0; padding-left: 20px; font-size: .9rem; line-height: 1.7; }
+  footer { color: #6e7a86; font-size: .78rem; padding: 10px 20px 26px; text-align: center; max-width: 640px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<header>
+  <h1>&#129503; AT Zombies</h1>
+  <p class="sub">&Uuml;berlebe die Wellen &ndash; deine Highscores liegen in deinem eigenen AT-Protocol-Repo.</p>
+</header>
+
+<div id="hud">
+  <div class="hudbox"><span class="label">Punkte</span><span id="hudScore">0</span></div>
+  <div class="hudbox"><span class="label">Welle</span><span id="hudWave">&ndash;</span></div>
+  <div class="hudbox"><span class="label">Leben</span><span id="hudLives">&ndash;</span></div>
+  <div class="hudbox"><span class="label">Bestwert</span><span id="hudBest">0</span></div>
+</div>
+
+<div id="gameWrap">
+  <canvas id="game" width="800" height="520"></canvas>
+  <div id="overlay">
+    <h2 id="ovTitle">&#129503; AT Zombies</h2>
+    <p id="ovText">Desktop: WASD oder Pfeiltasten = laufen &middot; Maus = zielen &middot; Klick (halten) = schie&szlig;en<br>Handy: Daumen ziehen = laufen &middot; Zielen &amp; Feuern automatisch</p>
+    <button id="btnStart">Los geht's</button>
+    <button id="btnSave" class="secondary" hidden>Highscore in mein Repo speichern</button>
+  </div>
+</div>
+
+<section>
+  <div id="authRow">
+    <div id="loginForm" hidden>
+      <input id="handleInput" placeholder="deinhandle.bsky.social" autocomplete="off">
+      <button id="btnLogin" class="secondary">Mit Bluesky anmelden</button>
+    </div>
+    <div id="userBox" hidden>
+      <span id="userName"></span>
+      <button id="btnLogout" class="secondary">Abmelden</button>
+    </div>
+  </div>
+  <p id="authHint" hidden></p>
+  <p id="status"></p>
+  <details id="cloudList" hidden>
+    <summary>Highscores in deinem ATproto-Repo</summary>
+    <ol id="scoreList"></ol>
+  </details>
+</section>
+
+<footer>
+  Anmeldung &uuml;ber ATproto-OAuth (Bluesky). Beim Login wird dein Handle &uuml;ber bsky.social aufgel&ouml;st &ndash; dabei sieht Bluesky deine IP.
+  Highscores werden als Records (dev.atzombies.score) in deinem eigenen AT-Protocol-Daten-Repo gespeichert und geh&ouml;ren dir &ndash; du kannst sie dort jederzeit l&ouml;schen.
+</footer>
+
+<script>
+(() => {
+'use strict';
+
+/* ============== Konfiguration ============== */
+var CONFIG = {
+  esmUrl: 'https://esm.sh/@atproto/oauth-client-browser@0.5.9',
+  handleResolver: 'https://bsky.social',
+  collection: 'dev.atzombies.score'
+};
+
+var W = 800, H = 520;
+function $(id) { return document.getElementById(id); }
+var canvas = $('game'), ctx = canvas.getContext('2d');
+var overlay = $('overlay');
+
+/* localStorage mit Fallback, falls Speicher gesperrt ist */
+var store = (function () {
+  try { var k = '__t'; localStorage.setItem(k, k); localStorage.removeItem(k); return localStorage; }
+  catch (e) {
+    var m = new Map();
+    return { getItem: function (k) { return m.has(k) ? m.get(k) : null; }, setItem: function (k, v) { m.set(k, String(v)); }, removeItem: function (k) { m.delete(k); } };
+  }
+})();
+
+/* ============== Spielzustand ============== */
+var state = 'menu';
+var player = null, bullets = [], zombies = [], particles = [];
+var wave = 0, waveCfg = null, spawnQueue = 0, spawnTimer = 0;
+var banner = '', bannerTimer = 0;
+var score = 0, kills = 0, startTime = 0;
+var best = Number(store.getItem('atz_best') || 0);
+var finishedRun = null;
+
+var keys = new Set();
+var mouse = { x: W / 2, y: H / 2, down: false };
+var isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+var joy = null;
+
+/* ============== Kernlogik ============== */
+function waveConfig(n) {
+  return {
+    count: Math.min(4 + n * 2, 40),
+    speed: 55 + n * 4,
+    bruteChance: n >= 3 ? 0.25 : 0,
+    interval: Math.max(0.4, 1.2 - n * 0.05)
+  };
+}
+
+function edgeSpawn() {
+  var side = Math.floor(Math.random() * 4);
+  var t = Math.random();
+  if (side === 0) return [t * W, -20];
+  if (side === 1) return [t * W, H + 20];
+  if (side === 2) return [-20, t * H];
+  return [W + 20, t * H];
+}
+
+function moveDir(fromX, fromY, toX, toY) {
+  var dx = toX - fromX, dy = toY - fromY;
+  var d = Math.hypot(dx, dy);
+  if (d < 0.001) return [0, 0];
+  return [dx / d, dy / d];
+}
+
+function hits(ax, ay, ar, bx, by, br) { return Math.hypot(ax - bx, ay - by) < ar + br; }
+
+function nearestZombie() {
+  var n = null, nd = Infinity;
+  for (var i = 0; i < zombies.length; i++) {
+    var z = zombies[i];
+    var d = Math.hypot(z.x - player.x, z.y - player.y);
+    if (d < nd) { nd = d; n = z; }
+  }
+  return n;
+}
+
+/* ============== Spielablauf ============== */
+function newGame() {
+  player = { x: W / 2, y: H / 2, r: 14, speed: 220, hp: 3, invuln: 0, cooldown: 0 };
+  bullets = []; zombies = []; particles = [];
+  score = 0; kills = 0; wave = 0; startTime = Date.now(); finishedRun = null;
+  nextWave();
+  state = 'playing';
+  overlay.hidden = true;
+  updateHud();
+}
+
+function nextWave() {
+  wave++;
+  waveCfg = waveConfig(wave);
+  spawnQueue = waveCfg.count;
+  spawnTimer = 0.3;
+  banner = 'Welle ' + wave;
+  bannerTimer = 1.6;
+}
+
+function spawnZombie() {
+  var brute = Math.random() < waveCfg.bruteChance;
+  var p = edgeSpawn();
+  var sp = waveCfg.speed * (brute ? 0.55 : 1) * (0.85 + Math.random() * 0.3);
+  zombies.push({ x: p[0], y: p[1], r: brute ? 20 : 13, hp: brute ? 3 : 1, speed: sp, brute: brute, flash: 0 });
+}
+
+function spawnParticles(z) {
+  for (var i = 0; i < 12; i++) {
+    var a = Math.random() * Math.PI * 2, sp = 60 + Math.random() * 160;
+    particles.push({
+      x: z.x, y: z.y,
+      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      life: 0.4 + Math.random() * 0.3, max: 0.7,
+      color: z.brute ? '#3a7d44' : '#6ab04c'
+    });
+  }
+}
+
+function fire() {
+  if (player.cooldown > 0) return;
+  var tx, ty;
+  if (isTouch) {
+    var z = nearestZombie();
+    if (!z) return;
+    tx = z.x; ty = z.y;
+  } else { tx = mouse.x; ty = mouse.y; }
+  var d = moveDir(player.x, player.y, tx, ty);
+  if (d[0] === 0 && d[1] === 0) return;
+  bullets.push({ x: player.x + d[0] * 18, y: player.y + d[1] * 18, vx: d[0] * 500, vy: d[1] * 500, r: 3 });
+  player.cooldown = 0.16;
+}
+
+function gameOver() {
+  state = 'over';
+  var durationSec = Math.round((Date.now() - startTime) / 1000);
+  var isRecord = score > best;
+  if (isRecord) { best = score; store.setItem('atz_best', String(best)); }
+  finishedRun = { score: score, wave: wave, kills: kills, durationSec: durationSec };
+  $('ovTitle').textContent = '🧟 Game Over';
+  $('ovText').innerHTML = score + ' Punkte · Welle ' + wave + ' · ' + kills + ' Kills · ' + fmtTime(durationSec) + (isRecord ? '<br><b>Neuer Bestwert! 🏆</b>' : '');
+  $('btnStart').textContent = 'Nochmal spielen';
+  $('btnSave').hidden = !session;
+  overlay.hidden = false;
+  updateHud();
+}
+
+function update(dt) {
+  /* Spielerbewegung */
+  var vx = 0, vy = 0;
+  if (keys.has('w') || keys.has('arrowup')) vy -= 1;
+  if (keys.has('s') || keys.has('arrowdown')) vy += 1;
+  if (keys.has('a') || keys.has('arrowleft')) vx -= 1;
+  if (keys.has('d') || keys.has('arrowright')) vx += 1;
+  if (joy) {
+    var jx = (joy.x - joy.ox) / 60, jy = (joy.y - joy.oy) / 60;
+    var jl = Math.hypot(jx, jy);
+    if (jl > 0.15) { vx = jx; vy = jy; }
+  }
+  var vl = Math.hypot(vx, vy);
+  if (vl > 1) { vx /= vl; vy /= vl; }
+  player.x = Math.min(W - player.r, Math.max(player.r, player.x + vx * player.speed * dt));
+  player.y = Math.min(H - player.r, Math.max(player.r, player.y + vy * player.speed * dt));
+  player.invuln = Math.max(0, player.invuln - dt);
+  player.cooldown = Math.max(0, player.cooldown - dt);
+
+  /* Feuern */
+  if (isTouch || mouse.down) fire();
+
+  /* Kugeln bewegen */
+  for (var i = bullets.length - 1; i >= 0; i--) {
+    var b = bullets[i];
+    b.x += b.vx * dt; b.y += b.vy * dt;
+    if (b.x < -10 || b.x > W + 10 || b.y < -10 || b.y > H + 10) bullets.splice(i, 1);
+  }
+
+  /* Spawns */
+  if (spawnQueue > 0) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) { spawnZombie(); spawnQueue--; spawnTimer = waveCfg.interval; }
+  }
+
+  /* Zombies bewegen */
+  for (var j = zombies.length - 1; j >= 0; j--) {
+    var z = zombies[j];
+    var d = moveDir(z.x, z.y, player.x, player.y);
+    z.x += d[0] * z.speed * dt; z.y += d[1] * z.speed * dt;
+    z.flash = Math.max(0, z.flash - dt);
+  }
+
+  /* Kugel trifft Zombie */
+  outer:
+  for (var bi = bullets.length - 1; bi >= 0; bi--) {
+    var bu = bullets[bi];
+    for (var zj = zombies.length - 1; zj >= 0; zj--) {
+      var zz = zombies[zj];
+      if (hits(bu.x, bu.y, bu.r, zz.x, zz.y, zz.r)) {
+        bullets.splice(bi, 1);
+        zz.hp--; zz.flash = 0.12;
+        if (zz.hp <= 0) {
+          zombies.splice(zj, 1);
+          kills++;
+          score += zz.brute ? 30 : 10;
+          spawnParticles(zz);
+        }
+        continue outer;
+      }
+    }
+  }
+
+  /* Zombie trifft Spieler */
+  for (var zi = 0; zi < zombies.length; zi++) {
+    var zb = zombies[zi];
+    if (player.invuln <= 0 && hits(zb.x, zb.y, zb.r, player.x, player.y, player.r)) {
+      player.hp--; player.invuln = 1.2;
+      var away = moveDir(player.x, player.y, zb.x, zb.y);
+      zb.x += away[0] * 40; zb.y += away[1] * 40;
+      if (player.hp <= 0) { gameOver(); return; }
+      break;
+    }
+  }
+
+  /* Wellenende */
+  if (spawnQueue === 0 && zombies.length === 0) {
+    score += 50;
+    nextWave();
+  }
+
+  /* Partikel */
+  for (var pi = particles.length - 1; pi >= 0; pi--) {
+    var pa = particles[pi];
+    pa.x += pa.vx * dt; pa.y += pa.vy * dt;
+    pa.life -= dt;
+    if (pa.life <= 0) particles.splice(pi, 1);
+  }
+
+  bannerTimer = Math.max(0, bannerTimer - dt);
+  updateHud();
+}
+
+/* ============== Zeichnen ============== */
+function drawZombie(z) {
+  ctx.fillStyle = z.flash > 0 ? '#ffffff' : (z.brute ? '#3a7d44' : '#6ab04c');
+  ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+  var d = moveDir(z.x, z.y, player ? player.x : z.x, player ? player.y : z.y);
+  var px = -d[1], py = d[0];
+  var ex = z.x + d[0] * z.r * 0.35, ey = z.y + d[1] * z.r * 0.35;
+  var er = Math.max(2.5, z.r * 0.22);
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(ex + px * z.r * 0.35, ey + py * z.r * 0.35, er, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex - px * z.r * 0.35, ey - py * z.r * 0.35, er, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#7d0f0f';
+  ctx.beginPath(); ctx.arc(ex + px * z.r * 0.35 + d[0] * er * 0.4, ey + py * z.r * 0.35 + d[1] * er * 0.4, er * 0.55, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex - px * z.r * 0.35 + d[0] * er * 0.4, ey - py * z.r * 0.35 + d[1] * er * 0.4, er * 0.55, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawPlayer() {
+  var blink = player.invuln > 0 && Math.floor(Date.now() / 100) % 2 === 0;
+  ctx.globalAlpha = blink ? 0.35 : 1;
+  ctx.fillStyle = '#4da3ff';
+  ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2); ctx.fill();
+  var ax = mouse.x, ay = mouse.y;
+  if (isTouch) {
+    var z = nearestZombie();
+    if (z) { ax = z.x; ay = z.y; } else { ax = player.x; ay = player.y - 10; }
+  }
+  var d = moveDir(player.x, player.y, ax, ay);
+  ctx.strokeStyle = '#cfe9ff';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(player.x + d[0] * player.r, player.y + d[1] * player.r);
+  ctx.lineTo(player.x + d[0] * (player.r + 10), player.y + d[1] * (player.r + 10));
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  ctx.fillStyle = '#0f1a12';
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+  ctx.lineWidth = 1;
+  for (var x = 50; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (var y = 50; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+  for (var pi = 0; pi < particles.length; pi++) {
+    var p = particles[pi];
+    ctx.globalAlpha = Math.max(0, p.life / p.max);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#ffd75e';
+  for (var bi = 0; bi < bullets.length; bi++) {
+    var b = bullets[bi];
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+  }
+
+  for (var zi = 0; zi < zombies.length; zi++) drawZombie(zombies[zi]);
+  if (player) drawPlayer();
+
+  if (bannerTimer > 0) {
+    ctx.globalAlpha = Math.min(1, bannerTimer);
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = 'bold 40px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(banner, W / 2, 64);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function updateHud() {
+  $('hudScore').textContent = score;
+  $('hudWave').textContent = wave || '–';
+  $('hudLives').textContent = player
+    ? '❤'.repeat(player.hp) + '🖤'.repeat(Math.max(0, 3 - player.hp))
+    : '–';
+  $('hudBest').textContent = Math.max(best, score);
+}
+
+function fmtTime(s) { return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+
+/* ============== Eingaben ============== */
+window.addEventListener('keydown', function (e) {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].indexOf(e.key) !== -1) e.preventDefault();
+  keys.add(e.key.toLowerCase());
+});
+window.addEventListener('keyup', function (e) { keys.delete(e.key.toLowerCase()); });
+
+canvas.addEventListener('mousemove', function (e) {
+  var r = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - r.left) * W / r.width;
+  mouse.y = (e.clientY - r.top) * H / r.height;
+});
+canvas.addEventListener('mousedown', function (e) { if (state === 'playing') { e.preventDefault(); mouse.down = true; } });
+window.addEventListener('mouseup', function () { mouse.down = false; });
+
+canvas.addEventListener('touchstart', function (e) {
+  e.preventDefault();
+  if (state !== 'playing') return;
+  var t = e.touches[0];
+  joy = { ox: t.clientX, oy: t.clientY, x: t.clientX, y: t.clientY };
+}, { passive: false });
+canvas.addEventListener('touchmove', function (e) {
+  e.preventDefault();
+  if (!joy) return;
+  var t = e.touches[0];
+  joy.x = t.clientX; joy.y = t.clientY;
+}, { passive: false });
+function endTouch(e) { e.preventDefault(); joy = null; }
+canvas.addEventListener('touchend', endTouch, { passive: false });
+canvas.addEventListener('touchcancel', endTouch, { passive: false });
+
+$('btnStart').addEventListener('click', newGame);
+$('btnSave').addEventListener('click', function () { saveScoreToRepo(finishedRun); });
+
+/* ============== Hauptschleife ============== */
+var last = performance.now();
+function frame(ts) {
+  var dt = Math.min((ts - last) / 1000, 0.05);
+  last = ts;
+  if (state === 'playing') update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ============== ATproto: OAuth + Records ============== */
+var oauth = null, session = null, oauthState = 'checking';
+
+function setStatus(t) { $('status').textContent = t; }
+function setHint(t) { $('authHint').textContent = t; }
+
+function updateAuthUI() {
+  var loggedIn = !!session;
+  $('loginForm').hidden = loggedIn || oauthState !== 'ready';
+  $('userBox').hidden = !loggedIn;
+  if (loggedIn) {
+    var h = store.getItem('atz_handle');
+    $('userName').textContent = h ? '@' + h : session.did;
+  }
+  $('authHint').hidden = !(oauthState === 'unavailable' && !loggedIn);
+  if (oauthState === 'checking') setStatus('Prüfe ATproto-Verfügbarkeit …');
+}
+
+async function initOAuth() {
+  var host = location.hostname;
+  var loopback = (host === '127.0.0.1' || host === 'localhost' || host === '[::1]');
+  if (!(location.protocol === 'https:' || loopback)) {
+    oauthState = 'unavailable';
+    setHint('Diese Vorschau hat keine echte Domain – Anmeldung nur in der gehosteten Version verfügbar (Details im README).');
+    updateAuthUI();
+    return;
+  }
+  try {
+    var mod = await import(CONFIG.esmUrl);
+    if (loopback) {
+      oauth = new mod.BrowserOAuthClient({ clientMetadata: undefined, handleResolver: CONFIG.handleResolver });
+    } else {
+      var clientId = new URL('client-metadata.json', location.href).href;
+      oauth = await mod.BrowserOAuthClient.load({ clientId: clientId, handleResolver: CONFIG.handleResolver });
+    }
+    var result = await oauth.init();
+    if (result && result.session) session = result.session;
+    oauthState = 'ready';
+  } catch (err) {
+    oauthState = 'unavailable';
+    setHint('Anmeldung nicht verfügbar. Liegt eine client-metadata.json neben dieser index.html? (Details im README)');
+  }
+  updateAuthUI();
+  if (session) loadCloudScores();
+}
+
+async function doLogin() {
+  var handle = $('handleInput').value.trim().replace(/^@/, '');
+  if (!handle) { setStatus('Bitte Handle eingeben, z. B. deinname.bsky.social'); return; }
+  if (!oauth) return;
+  try {
+    store.setItem('atz_handle', handle);
+    setStatus('Leite zu Bluesky weiter …');
+    await oauth.signIn(handle); /* leitet den Browser weiter; löst sich nicht auf */
+  } catch (e) {
+    setStatus('Anmeldung abgebrochen.');
+  }
+}
+
+async function doLogout() {
+  try { if (session) await session.signOut(); } catch (e) {}
+  location.reload();
+}
+
+$('btnLogin').addEventListener('click', doLogin);
+$('btnLogout').addEventListener('click', doLogout);
+$('handleInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+
+async function xrpc(nsid, opts) {
+  opts = opts || {};
+  var info = await session.getTokenInfo();
+  var url = new URL('/xrpc/' + nsid, info.aud);
+  var params = opts.params || {};
+  Object.keys(params).forEach(function (k) { if (params[k] != null) url.searchParams.set(k, String(params[k])); });
+  var init = { method: opts.method || 'GET', headers: { 'content-type': 'application/json' } };
+  if (opts.body != null) init.body = JSON.stringify(opts.body);
+  var res = await session.fetchHandler(url.href, init);
+  if (!res.ok) throw new Error('XRPC ' + nsid + ' → HTTP ' + res.status);
+  return res.json();
+}
+
+async function saveScoreToRepo(run) {
+  if (!session || !run) return;
+  setStatus('Speichere in deinem ATproto-Repo …');
+  try {
+    var rkey = 'r' + Date.now().toString(36) + Math.floor(Math.random() * 10000).toString(36);
+    await xrpc('com.atproto.repo.putRecord', {
+      method: 'POST',
+      body: {
+        repo: session.did,
+        collection: CONFIG.collection,
+        rkey: rkey,
+        record: {
+          $type: CONFIG.collection,
+          createdAt: new Date().toISOString(),
+          score: run.score,
+          wave: run.wave,
+          kills: run.kills,
+          durationSec: run.durationSec
+        }
+      }
+    });
+    setStatus('Highscore in deinem Repo gespeichert ✓');
+    loadCloudScores();
+  } catch (e) {
+    setStatus('Speichern fehlgeschlagen: ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function loadCloudScores() {
+  if (!session) return;
+  try {
+    var data = await xrpc('com.atproto.repo.listRecords', {
+      params: { repo: session.did, collection: CONFIG.collection, limit: 100 }
+    });
+    var recs = (data.records || []).map(function (r) { return r.value; }).filter(Boolean);
+    recs.sort(function (a, b) { return (b.score || 0) - (a.score || 0); });
+    var ol = $('scoreList');
+    ol.innerHTML = '';
+    recs.slice(0, 10).forEach(function (r) {
+      var li = document.createElement('li');
+      var when = r.createdAt ? new Date(r.createdAt).toLocaleString('de-DE') : '';
+      li.textContent = (r.score || 0) + ' Punkte · Welle ' + (r.wave != null ? r.wave : '?') + ' · ' + (r.kills != null ? r.kills : '?') + ' Kills · ' + when;
+      ol.appendChild(li);
+    });
+    $('cloudList').hidden = false;
+    var cloudBest = 0;
+    recs.forEach(function (r) { if ((r.score || 0) > cloudBest) cloudBest = r.score || 0; });
+    if (cloudBest > best) { best = cloudBest; updateHud(); }
+  } catch (e) {
+    /* Repo-Liste nicht lesbar – Highscores laufen trotzdem lokal */
+  }
+}
+
+updateHud();
+updateAuthUI();
+initOAuth();
+
+})();
+</script>
+</body>
+</html>
