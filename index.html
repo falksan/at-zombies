@@ -17,23 +17,14 @@
   .hudbox .label { display: block; font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: #9ba8b4; }
   .hudbox span:last-child { font-size: 1.05rem; font-weight: 700; }
   #gameWrap { position: relative; width: min(100%, 840px); margin: 0 12px; }
-  canvas { display: block; width: 100%; border-radius: 14px; background: #0b1220; border: 1px solid #26323a; }
+  canvas { display: block; width: 100%; border-radius: 14px; background: #0b1220; border: 1px solid #26323a; touch-action: none; }
   #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10, 14, 19, .9); border-radius: 14px; text-align: center; padding: 20px; }
   #overlay[hidden] { display: none; }
   #overlay h2 { margin: 0; }
   #ovText { color: #c7d1d9; font-size: .95rem; line-height: 1.7; margin: 0; }
-  button { background: #2ea043; color: #fff; border: 0; border-radius: 10px; padding: 10px 14px; font-size: .95rem; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-  button:hover { background: #3fb950; }
+  button { background: #2ea043; color: #fff; border: 0; border-radius: 10px; padding: 10px 16px; font-size: .95rem; font-weight: 600; cursor: pointer; touch-action: manipulation; }
   button.secondary { background: #30363d; }
-  button.secondary:hover { background: #424a53; }
-  #actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: min(100%, 840px); margin: 12px; }
-  @media (min-width: 700px) { #actions { grid-template-columns: repeat(5, 1fr); } }
-  .act { min-height: 54px; font-size: .95rem; }
-  .act:disabled { opacity: .35; cursor: default; }
-  #log { width: min(100%, 840px); margin: 0 12px 14px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 12px 16px; min-height: 70px; font-size: .88rem; color: #c7d1d9; }
-  .logline { padding: 2px 0; }
-  .logline.fresh { color: #7ee787; font-weight: 600; }
-  section { width: min(100%, 840px); margin: 0 12px 14px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 16px; }
+  section { width: min(100%, 840px); margin: 14px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 14px 16px; }
   #authRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   #loginForm { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   input { background: #0d1117; border: 1px solid #30363d; color: #e6edf3; border-radius: 10px; padding: 10px 12px; font-size: .95rem; min-width: 200px; }
@@ -48,39 +39,26 @@
 </head>
 <body>
 <header>
-  <h1>🧟 AT Zombies</h1>
-  <p class="sub">Rundenbasiertes Survival in Ego-Perspektive – deine Highscores liegen in deinem eigenen AT-Protocol-Repo.</p>
+  <h1>🧟 AT Zombies – Breakout</h1>
+  <p class="sub">Breakout gegen eine Horde, die auf dich zukriecht – deine Highscores liegen in deinem eigenen AT-Protocol-Repo.</p>
 </header>
 
 <div id="hud">
-  <div class="hudbox"><span class="label">Runde</span><span id="hudRound">–</span></div>
+  <div class="hudbox"><span class="label">Welle</span><span id="hudWave">–</span></div>
   <div class="hudbox"><span class="label">Punkte</span><span id="hudScore">0</span></div>
   <div class="hudbox"><span class="label">Leben</span><span id="hudLives">–</span></div>
-  <div class="hudbox"><span class="label">Munition</span><span id="hudAmmo">–</span></div>
-  <div class="hudbox"><span class="label">Kits</span><span id="hudKits">–</span></div>
-  <div class="hudbox"><span class="label">Barrikade</span><span id="hudBarricade">–</span></div>
-  <div class="hudbox"><span class="label">Aktionen</span><span id="hudActions">–</span></div>
+  <div class="hudbox"><span class="label">Bestwert</span><span id="hudBest">0</span></div>
 </div>
 
 <div id="gameWrap">
   <canvas id="game" width="800" height="520"></canvas>
   <div id="overlay">
-    <h2 id="ovTitle">🧟 AT Zombies</h2>
-    <p id="ovText">Du verteidigst deine Barrikade am Ende der Straße.<br>Pro Runde 2 Aktionen: 🎯 Schießen · 🔄 Nachladen · 🔧 Reparieren · 💊 Verband · 🔎 Spähen.<br>Walker kommen langsam, Läufer schnell, Bruter halten viel aus. Überlebe so viele Runden wie möglich!</p>
+    <h2 id="ovTitle">🧟 AT Zombies – Breakout</h2>
+    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>Der Ball erledigt die Horde: Walker +25 · Läufer +35 · Bruter (3 Treffer) +50.<br>Erreicht die Horde die rote Linie: −1 Leben. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
     <button id="btnStart">Los geht's</button>
     <button id="btnSave" class="secondary" hidden>Highscore in mein Repo speichern</button>
   </div>
 </div>
-
-<div id="actions">
-  <button class="act" id="btnShoot">🎯 Schießen</button>
-  <button class="act" id="btnReload">🔄 Nachladen</button>
-  <button class="act" id="btnRepair">🔧 Reparieren</button>
-  <button class="act" id="btnHeal">💊 Verbandskasten</button>
-  <button class="act" id="btnScavenge">🔎 Spähen</button>
-</div>
-
-<div id="log"></div>
 
 <section>
   <div id="authRow">
@@ -133,237 +111,267 @@ var store = (function () {
 
 /* ============== Spieldaten ============== */
 var TYPE = {
-  walker: { name: 'Walker', hp: 40, dmg: 15, score: 25, color: '#6ab04c', speed: 1 },
-  runner: { name: 'Läufer', hp: 25, dmg: 10, score: 35, color: '#c07f3a', speed: 2 },
-  brute:  { name: 'Bruter', hp: 100, dmg: 25, score: 50, color: '#3a7d44', speed: 1 }
+  walker: { name: 'Walker', hp: 1, score: 25, color: '#6ab04c' },
+  runner: { name: 'Läufer', hp: 1, score: 35, color: '#c07f3a' },
+  brute:  { name: 'Bruter', hp: 3, score: 50, color: '#3a7d44' }
 };
-var MAG_MAX = 6, HP_MAX = 3, BAR_MAX = 100;
-
-function freshGame() {
-  return {
-    round: 1, score: 0, kills: 0,
-    hp: HP_MAX, kits: 2, mag: MAG_MAX, reserve: 24,
-    barricade: BAR_MAX, actions: 2,
-    zombies: []
-  };
-}
+var DANGER_Y = 424;
+var PADDLE_Y = 478, PADDLE_H = 14, PADDLE_W = 150;
+var DROP_KINDS = [
+  { kind: 'wide',  icon: '↔', chance: 0.40 },
+  { kind: 'multi', icon: '●', chance: 0.30 },
+  { kind: 'life',  icon: '❤', chance: 0.10 },
+  { kind: 'skull', icon: '💀', chance: 0.20 }
+];
 
 var state = 'menu';
-var game = freshGame();
+var wave = 1, score = 0, kills = 0, hp = 3;
 var best = Number(store.getItem('atz_best') || 0);
+var zombies = [], balls = [], drops = [], particles = [];
+var paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
+var stepTimer = 0, bannerTimer = 0, banner = '';
 var finishedRun = null;
-var resolving = false;
-var logArr = [];
-var particles = [];
-var fxShot = 0;
+var firstLaunchDone = false;
 
-/* ============== Log ============== */
-function addLog(t) {
-  logArr.unshift(t);
-  if (logArr.length > 8) logArr.length = 8;
-  var html = '';
-  for (var i = 0; i < logArr.length; i++) {
-    html += '<div class="logline' + (i === 0 ? ' fresh' : '') + '">' + logArr[i] + '</div>';
-  }
-  $('log').innerHTML = html;
-}
+function stepEvery() { return Math.max(4.5, 11 - (wave - 1) * 0.7); }
+function ballSpeed() { return Math.min(480, 330 + (wave - 1) * 15); }
 
 /* ============== Spielablauf ============== */
 function newGame() {
-  game = freshGame();
-  logArr = [];
-  particles = [];
-  finishedRun = null;
-  resolving = false;
+  wave = 1; score = 0; kills = 0; hp = 3;
+  zombies = []; balls = []; drops = []; particles = [];
+  paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
+  stepTimer = 0; finishedRun = null; firstLaunchDone = false;
+  spawnHorde(1);
+  balls = [makeBall(true)];
+  banner = 'Welle 1'; bannerTimer = 1.6;
   state = 'playing';
-  addLog('Du hörst sie in der Ferne …');
-  addLog('— Runde 1 —');
   overlay.hidden = true;
   updateHud();
-  updateButtons();
 }
 
-function target() {
-  var t = null;
-  for (var i = 0; i < game.zombies.length; i++) {
-    if (!t || game.zombies[i].dist < t.dist) t = game.zombies[i];
-  }
-  return t;
+function makeBall(attached) {
+  return { x: paddle.cx, y: PADDLE_Y - 14, vx: 0, vy: 0, r: 7, attached: !!attached };
 }
 
-function spawnZombie() {
-  var roll = Math.random();
-  var type = 'walker';
-  if (game.round >= 4 && roll < 0.15) type = 'runner';
-  else if (game.round >= 6 && roll < 0.30) type = 'brute';
-  game.zombies.push({
-    type: type,
-    dist: 5,
-    lane: Math.floor(Math.random() * 4),
-    jit: Math.round(Math.random() * 50 - 25),
-    hp: TYPE[type].hp,
-    maxHp: TYPE[type].hp,
-    flash: 0
-  });
-}
-
-function spawnCount() {
-  var n = Math.floor(1 + game.round / 3);
-  if (Math.random() < 0.4) n++;
-  return Math.min(5, n);
-}
-
-function spendAction() {
-  game.actions--;
-  updateHud();
-  updateButtons();
-  if (game.actions <= 0) {
-    resolving = true;
-    updateButtons();
-    setTimeout(function () {
-      resolveRound();
-      resolving = false;
-      updateHud();
-      updateButtons();
-    }, 650);
-  }
-}
-
-function resolveRound() {
-  /* Zombies rücken vor */
-  game.zombies.forEach(function (z) {
-    z.dist = Math.max(0, z.dist - TYPE[z.type].speed);
-  });
-
-  /* Angriffe */
-  var dmg = 0;
-  game.zombies.forEach(function (z) { if (z.dist === 0) dmg += TYPE[z.type].dmg; });
-  if (dmg > 0) {
-    if (game.barricade > 0) {
-      game.barricade = Math.max(0, game.barricade - dmg);
-      addLog('Zombies greifen an: Barrikade −' + dmg);
-      if (game.barricade === 0) addLog('⚠️ Die Barrikade ist gefallen!');
-    } else {
-      game.hp -= 1;
-      addLog('Zombies erreichen dich: −1 Leben!');
-      if (game.hp <= 0) { gameOver(); return; }
+function spawnHorde(w) {
+  zombies = [];
+  var rows = Math.min(2 + Math.ceil(w / 2), 5);
+  for (var r = 0; r < rows; r++) {
+    for (var c = 0; c < 8; c++) {
+      var type = 'walker';
+      var roll = Math.random();
+      if (w >= 3 && roll < 0.12) type = 'brute';
+      else if (w >= 2 && roll < 0.30) type = 'runner';
+      zombies.push({
+        x: 48 + c * 88, y: 90 + r * 54, w: 70, h: 44,
+        hp: TYPE[type].hp, maxHp: TYPE[type].hp,
+        type: type, flash: 0, seed: Math.random() * 10
+      });
     }
   }
+}
 
-  /* Runde überstanden */
-  game.score += 10;
-  game.round++;
-  game.actions = 2;
+function hordeDown(by) {
+  for (var i = 0; i < zombies.length; i++) zombies[i].y += by;
+  /* Gefahrenlinie erreicht? */
+  var danger = false;
+  for (var j = 0; j < zombies.length; j++) {
+    if (zombies[j].y + zombies[j].h >= DANGER_Y) { danger = true; break; }
+  }
+  if (danger) {
+    for (var k = 0; k < zombies.length; k++) zombies[k].y = Math.max(60, zombies[k].y - 72);
+    loseLife('Die Horde hat die Linie erreicht!');
+  }
+}
 
-  /* Neue Zombies */
-  var n = Math.max(0, Math.min(spawnCount(), 12 - game.zombies.length));
-  for (var i = 0; i < n; i++) spawnZombie();
-  addLog('— Runde ' + game.round + ' —');
-  if (n > 0) addLog('In der Ferne: ' + n + (n === 1 ? ' Zombie' : ' Zombies') + ' aufgetaucht.');
+function loseLife(msg) {
+  hp--;
+  updateHud();
+  if (hp <= 0) { gameOver(); return; }
+  balls = [makeBall(true)];
+  if (msg) flashBanner(msg);
+}
+
+function flashBanner(t) { banner = t; bannerTimer = 1.4; }
+
+function launch() {
+  var b = null;
+  for (var i = 0; i < balls.length; i++) { if (balls[i].attached) { b = balls[i]; break; } }
+  if (!b) return;
+  var a = (-90 + (Math.random() * 50 - 25)) * Math.PI / 180;
+  var sp = ballSpeed();
+  b.vx = Math.cos(a) * sp;
+  b.vy = Math.sin(a) * sp;
+  b.attached = false;
+  firstLaunchDone = true;
 }
 
 function gameOver() {
   state = 'over';
-  var isRecord = game.score > best;
-  if (isRecord) { best = game.score; store.setItem('atz_best', String(best)); }
-  finishedRun = { score: game.score, round: game.round, kills: game.kills };
+  var isRecord = score > best;
+  if (isRecord) { best = score; store.setItem('atz_best', String(best)); }
+  finishedRun = { score: score, wave: wave, kills: kills };
   $('ovTitle').textContent = '🧟 Überwältigt!';
-  $('ovText').innerHTML = game.score + ' Punkte · Runde ' + game.round + ' · ' + game.kills + ' Kills' + (isRecord ? '<br><b>Neuer Bestwert! 🏆</b>' : '');
+  $('ovText').innerHTML = score + ' Punkte · Welle ' + wave + ' · ' + kills + ' Kills' + (isRecord ? '<br><b>Neuer Bestwert! 🏆</b>' : '');
   $('btnStart').textContent = 'Nochmal spielen';
   $('btnSave').hidden = !session;
   overlay.hidden = false;
   updateHud();
-  updateButtons();
 }
 
-/* ============== Aktionen ============== */
-function actShoot() {
-  if ($('btnShoot').disabled) return;
-  var t = target();
-  game.mag--;
-  fxShot = Date.now();
-  var hit = Math.random() < 0.8;
-  if (!hit) {
-    addLog('Schuss verfehlt!');
-  } else {
-    var head = Math.random() < 0.2;
-    var dmg = head ? 100 : 40;
-    t.hp -= dmg;
-    t.flash = Date.now();
-    if (t.hp <= 0) {
-      var p = screenPos(t);
-      spawnBlood(p.x, p.y - p.h * 0.72);
-      var pts = TYPE[t.type].score;
-      game.kills++;
-      game.score += pts;
-      game.zombies.splice(game.zombies.indexOf(t), 1);
-      addLog(TYPE[t.type].name + ' erledigt: +' + pts + ' Punkte');
-    } else {
-      addLog((head ? 'Kopftreffer! ' : 'Treffer. ') + '−' + dmg + ' HP (' + TYPE[t.type].name + ')');
+/* ============== Physik & Logik ============== */
+function killZombie(z) {
+  kills++;
+  score += TYPE[z.type].score;
+  var idx = zombies.indexOf(z);
+  if (idx !== -1) zombies.splice(idx, 1);
+  /* Blut */
+  for (var i = 0; i < 12; i++) {
+    var ang = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 140;
+    particles.push({
+      x: z.x + z.w / 2, y: z.y + z.h / 2,
+      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+      life: 0.35 + Math.random() * 0.3, max: 0.65,
+      color: '#8a1f1f'
+    });
+  }
+  /* Fund-Chance */
+  if (Math.random() < 0.18) {
+    var roll = Math.random(), kind = 'wide';
+    var acc = 0;
+    for (var d = 0; d < DROP_KINDS.length; d++) {
+      acc += DROP_KINDS[d].chance;
+      if (roll < acc) { kind = DROP_KINDS[d].kind; break; }
+    }
+    var icon = '';
+    for (var e = 0; e < DROP_KINDS.length; e++) if (DROP_KINDS[e].kind === kind) icon = DROP_KINDS[e].icon;
+    drops.push({ x: z.x + z.w / 2, y: z.y + z.h / 2, kind: kind, icon: icon });
+  }
+  /* Welle geschafft? */
+  if (zombies.length === 0) {
+    wave++;
+    score += 50;
+    spawnHorde(wave);
+    stepTimer = 0;
+    flashBanner('Welle ' + wave + ' · +50');
+    updateHud();
+  }
+}
+
+function applyDrop(kind) {
+  if (kind === 'wide') { paddle.wideTimer = 15; }
+  else if (kind === 'multi') {
+    var src = null;
+    for (var i = 0; i < balls.length; i++) { if (!balls[i].attached) { src = balls[i]; break; } }
+    if (!src && balls.length) src = balls[0];
+    if (src) {
+      for (var k = -1; k <= 1; k += 2) {
+        var sp = Math.max(ballSpeed(), Math.hypot(src.vx, src.vy));
+        var ang = Math.atan2(src.vy || -1, src.vx || 0) + k * 0.4;
+        balls.push({ x: src.x, y: src.y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, r: 7, attached: false });
+      }
     }
   }
-  spendAction();
+  else if (kind === 'life') { hp = Math.min(3, hp + 1); updateHud(); }
+  else if (kind === 'skull') { hordeDown(24); }
 }
 
-function actReload() {
-  if ($('btnReload').disabled) return;
-  var take = Math.min(MAG_MAX - game.mag, game.reserve);
-  game.mag += take;
-  game.reserve -= take;
-  addLog('Nachgeladen (+' + take + ' Schuss).');
-  spendAction();
-}
+function update(dt) {
+  /* Paddlebreite (Power-up) */
+  paddle.wideTimer = Math.max(0, paddle.wideTimer - dt);
+  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
 
-function actRepair() {
-  if ($('btnRepair').disabled) return;
-  game.barricade = Math.min(BAR_MAX, game.barricade + 25);
-  addLog('Barrikade repariert (+25).');
-  spendAction();
-}
+  /* Horde kriecht */
+  stepTimer += dt;
+  if (stepTimer >= stepEvery()) {
+    stepTimer = 0;
+    hordeDown(24);
+    if (state !== 'playing') return;
+  }
 
-function actHeal() {
-  if ($('btnHeal').disabled) return;
-  game.kits--;
-  game.hp = Math.min(HP_MAX, game.hp + 1);
-  addLog('Verbandskasten benutzt (+1 Leben).');
-  spendAction();
-}
+  /* Bälle */
+  for (var i = balls.length - 1; i >= 0; i--) {
+    var b = balls[i];
+    if (b.attached) {
+      b.x = paddle.cx;
+      b.y = PADDLE_Y - 14;
+      continue;
+    }
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
 
-function actScavenge() {
-  if ($('btnScavenge').disabled) return;
-  var roll = Math.random();
-  if (roll < 0.4) { game.reserve += 8; addLog('🔎 +8 Munition gefunden!'); }
-  else if (roll < 0.65) { game.kits += 1; addLog('🔎 Verbandskasten gefunden!'); }
-  else { addLog('🔎 Nichts Brauchbares gefunden.'); }
-  spendAction();
-}
+    /* Wände */
+    if (b.x - b.r < 0) { b.x = b.r; b.vx = Math.abs(b.vx); }
+    if (b.x + b.r > W) { b.x = W - b.r; b.vx = -Math.abs(b.vx); }
+    if (b.y - b.r < 0) { b.y = b.r; b.vy = Math.abs(b.vy); }
 
-$('btnShoot').addEventListener('click', actShoot);
-$('btnReload').addEventListener('click', actReload);
-$('btnRepair').addEventListener('click', actRepair);
-$('btnHeal').addEventListener('click', actHeal);
-$('btnScavenge').addEventListener('click', actScavenge);
-$('btnStart').addEventListener('click', newGame);
-$('btnSave').addEventListener('click', function () { saveScoreToRepo(finishedRun); });
+    /* Barrikade */
+    if (b.vy > 0 && b.y + b.r >= PADDLE_Y && b.y < PADDLE_Y + PADDLE_H + 10 &&
+        Math.abs(b.x - paddle.cx) <= pw / 2 + b.r) {
+      var rel = Math.max(-1, Math.min(1, (b.x - paddle.cx) / (pw / 2)));
+      var theta = rel * (Math.PI / 3);
+      var sp = ballSpeed();
+      b.vx = Math.sin(theta) * sp;
+      b.vy = -Math.cos(theta) * sp;
+      b.y = PADDLE_Y - b.r;
+    }
 
-/* ============== HUD ============== */
-function updateHud() {
-  $('hudRound').textContent = game.round;
-  $('hudScore').textContent = game.score;
-  $('hudLives').textContent = '❤'.repeat(game.hp) + '🖤'.repeat(Math.max(0, HP_MAX - game.hp));
-  $('hudAmmo').textContent = game.mag + ' / ' + game.reserve;
-  $('hudKits').textContent = '×' + game.kits;
-  $('hudBarricade').textContent = game.barricade + '%';
-  $('hudActions').textContent = '●'.repeat(Math.max(0, game.actions)) + '○'.repeat(Math.max(0, 2 - Math.max(0, game.actions)));
-}
+    /* Unten raus */
+    if (b.y - b.r > H + 20) {
+      balls.splice(i, 1);
+      continue;
+    }
 
-function updateButtons() {
-  var dis = state !== 'playing' || resolving || game.actions < 1;
-  $('btnShoot').disabled = dis || game.mag < 1 || game.zombies.length === 0;
-  $('btnReload').disabled = dis || game.mag >= MAG_MAX || game.reserve < 1;
-  $('btnRepair').disabled = dis || game.barricade >= BAR_MAX;
-  $('btnHeal').disabled = dis || game.kits < 1 || game.hp >= HP_MAX;
-  $('btnScavenge').disabled = dis;
+    /* Zombie-Treffer (nur einer pro Frame) */
+    var hit = null, hx = 0, hy = 0;
+    for (var j = 0; j < zombies.length; j++) {
+      var z = zombies[j];
+      var cx = Math.max(z.x, Math.min(b.x, z.x + z.w));
+      var cy = Math.max(z.y, Math.min(b.y, z.y + z.h));
+      var dx = b.x - cx, dy = b.y - cy;
+      if (dx * dx + dy * dy <= b.r * b.r) { hit = z; hx = dx; hy = dy; break; }
+    }
+    if (hit) {
+      if (Math.abs(hx) > Math.abs(hy)) b.vx = Math.abs(b.vx) * (hx > 0 ? 1 : -1);
+      else if (hy !== 0) b.vy = Math.abs(b.vy) * (hy > 0 ? 1 : -1);
+      else b.vy = -b.vy;
+      hit.hp--;
+      hit.flash = Date.now();
+      if (hit.hp <= 0) killZombie(hit);
+      else score += 5;
+      updateHud();
+    }
+  }
+
+  /* Ball komplett verloren -> Leben */
+  if (balls.length === 0) {
+    loseLife('Leuchtkugel verloren!');
+    return;
+  }
+
+  /* Fundstücke fallen */
+  for (var di = drops.length - 1; di >= 0; di--) {
+    var dr = drops[di];
+    dr.y += 160 * dt;
+    if (dr.y > H + 20) { drops.splice(di, 1); continue; }
+    if (dr.y >= PADDLE_Y - 4 && dr.y <= PADDLE_Y + PADDLE_H + 8 &&
+        Math.abs(dr.x - paddle.cx) <= pw / 2 + 14) {
+      applyDrop(dr.kind);
+      drops.splice(di, 1);
+    }
+  }
+
+  /* Partikel */
+  for (var pi = particles.length - 1; pi >= 0; pi--) {
+    var p = particles[pi];
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    p.life -= dt;
+    if (p.life <= 0) particles.splice(pi, 1);
+  }
+
+  bannerTimer = Math.max(0, bannerTimer - dt);
+  if (Math.max(best, score) !== best) updateHud();
 }
 
 /* ============== Zeichnen ============== */
@@ -377,178 +385,195 @@ var buildings = [];
   }
 })();
 
-function screenPos(z) {
-  var scale = 1.15 - z.dist * 0.05;
-  var baseX = [140, 310, 480, 650][z.lane];
-  var x = W / 2 + (baseX + z.jit - W / 2) * scale;
-  var y = 500 - z.dist * 36;
-  var h = 150 - z.dist * 24;
-  if (z.type === 'brute') h *= 1.25;
-  return { x: x, y: y, h: h };
-}
-
-function spawnBlood(x, y) {
-  for (var i = 0; i < 12; i++) {
-    var a = Math.random() * Math.PI * 2, sp = 40 + Math.random() * 140;
-    particles.push({
-      x: x, y: y,
-      vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      life: 0.35 + Math.random() * 0.3, max: 0.65,
-      color: '#8a1f1f'
-    });
-  }
-}
-
-function drawZombie(z) {
-  var p = screenPos(z);
-  var sway = Math.sin(Date.now() / 700 + z.dist * 1.3 + z.lane * 2) * p.h * 0.015;
-  var x = p.x + sway, y = p.y, h = p.h;
-  var col = Date.now() - z.flash < 150 ? '#ffffff' : TYPE[z.type].color;
-  /* Beine */
-  ctx.strokeStyle = '#39422f';
-  ctx.lineWidth = Math.max(2, h * 0.05);
-  ctx.beginPath();
-  ctx.moveTo(x - h * 0.1, y - h * 0.2); ctx.lineTo(x - h * 0.12, y);
-  ctx.moveTo(x + h * 0.1, y - h * 0.2); ctx.lineTo(x + h * 0.12, y);
-  ctx.stroke();
+function drawZombieTile(z) {
+  var flash = Date.now() - z.flash < 120;
+  var col = flash ? '#ffffff' : TYPE[z.type].color;
+  var wig = z.type === 'runner' ? Math.sin(Date.now() / 300 + z.seed) * 3 : 0;
+  var x = z.x + wig, y = z.y, w = z.w, h = z.h;
+  var bw = w * (z.type === 'brute' ? 0.95 : 0.66);
+  var bh = h * 0.72;
+  var bx = x + (w - bw) / 2, by = y + h - bh;
   /* Körper */
   ctx.fillStyle = col;
-  var bw = h * (z.type === 'brute' ? 0.55 : 0.44);
-  ctx.fillRect(x - bw / 2, y - h * 0.66, bw, h * 0.48);
+  ctx.fillRect(bx, by, bw, bh);
   /* Arme */
   ctx.strokeStyle = col;
-  ctx.lineWidth = Math.max(2, h * 0.06);
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.moveTo(x - bw / 2, y - h * 0.6); ctx.lineTo(x - bw / 2 - h * 0.12, y - h * 0.42);
-  ctx.moveTo(x + bw / 2, y - h * 0.6); ctx.lineTo(x + bw / 2 + h * 0.12, y - h * 0.42);
+  ctx.moveTo(bx, by + bh * 0.2); ctx.lineTo(bx - 7, by + bh * 0.55);
+  ctx.moveTo(bx + bw, by + bh * 0.2); ctx.lineTo(bx + bw + 7, by + bh * 0.55);
   ctx.stroke();
   /* Kopf */
+  var hr = w * 0.16;
   ctx.fillStyle = col;
-  ctx.beginPath(); ctx.arc(x, y - h * 0.75, h * 0.14, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w / 2, by - hr * 0.4, hr, 0, Math.PI * 2); ctx.fill();
   /* Augen */
   ctx.fillStyle = '#c0392b';
-  ctx.beginPath(); ctx.arc(x - h * 0.05, y - h * 0.76, Math.max(1, h * 0.025), 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + h * 0.05, y - h * 0.76, Math.max(1, h * 0.025), 0, Math.PI * 2); ctx.fill();
-  /* HP-Balken, falls verletzt */
+  var ey = by - hr * 0.5;
+  ctx.beginPath(); ctx.arc(x + w / 2 - hr * 0.35, ey, Math.max(1.4, hr * 0.18), 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + w / 2 + hr * 0.35, ey, Math.max(1.4, hr * 0.18), 0, Math.PI * 2); ctx.fill();
+  /* HP-Balken (Bruter) */
   if (z.hp < z.maxHp) {
-    var bw2 = h * 0.4;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(x - bw2 / 2, y - h * 0.95, bw2, Math.max(3, h * 0.05));
+    ctx.fillRect(x + w * 0.2, y - 4, w * 0.6, 4);
     ctx.fillStyle = '#e05252';
-    ctx.fillRect(x - bw2 / 2, y - h * 0.95, bw2 * Math.max(0, z.hp / z.maxHp), Math.max(3, h * 0.05));
+    ctx.fillRect(x + w * 0.2, y - 4, w * 0.6 * (z.hp / z.maxHp), 4);
   }
 }
 
 function draw() {
   /* Himmel */
   ctx.fillStyle = '#0b1220';
-  ctx.fillRect(0, 0, W, 300);
+  ctx.fillRect(0, 0, W, 240);
   /* Mond */
   ctx.fillStyle = 'rgba(216, 222, 230, 0.85)';
-  ctx.beginPath(); ctx.arc(660, 72, 26, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(700, 60, 24, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#0b1220';
-  ctx.beginPath(); ctx.arc(648, 64, 22, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(689, 53, 20, 0, Math.PI * 2); ctx.fill();
   /* Skyline */
   ctx.fillStyle = '#0f1722';
   for (var b = 0; b < buildings.length; b++) {
     var bd = buildings[b];
-    ctx.fillRect(bd.x, 280 - bd.h, bd.w, bd.h);
+    ctx.fillRect(bd.x, 240 - bd.h, bd.w, bd.h);
   }
   /* Boden */
   ctx.fillStyle = '#1a2417';
-  ctx.fillRect(0, 280, W, H - 280);
-  /* Straße */
+  ctx.fillRect(0, 240, W, H - 240);
   ctx.fillStyle = '#23272e';
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - 80, 280);
-  ctx.lineTo(W / 2 + 80, 280);
-  ctx.lineTo(W + 40, H);
-  ctx.lineTo(-40, H);
-  ctx.closePath();
-  ctx.fill();
-  /* Mittellinie */
-  ctx.fillStyle = '#3d434d';
-  var sy = 300;
-  while (sy < H) {
-    var len = 4 + (sy - 280) * 0.12;
-    ctx.fillRect(W / 2 - 3, sy, 6, len);
-    sy += len + 14;
-  }
+  ctx.fillRect(0, 330, W, H - 330);
 
-  /* Zombies (ferne zuerst) */
-  var sorted = game.zombies.slice().sort(function (a, b) { return b.dist - a.dist; });
-  for (var zi = 0; zi < sorted.length; zi++) drawZombie(sorted[zi]);
+  /* Gefahrenlinie */
+  ctx.strokeStyle = 'rgba(224, 82, 82, 0.55)';
+  ctx.setLineDash([12, 10]);
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, DANGER_Y); ctx.lineTo(W, DANGER_Y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(224, 82, 82, 0.7)';
+  ctx.font = '12px system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Gefahrenzone', 10, DANGER_Y - 8);
 
-  /* Barrikade */
-  var by = 424;
-  ctx.fillStyle = '#8a6d3b';
-  for (var pi = 0; pi < 3; pi++) {
-    ctx.fillRect(-20, by + pi * 16, W + 40, 13);
-  }
-  ctx.strokeStyle = '#5d4a26';
-  ctx.lineWidth = 1;
-  for (var pl = 0; pl < 3; pl++) {
-    ctx.beginPath(); ctx.moveTo(0, by + pl * 16 + 13); ctx.lineTo(W, by + pl * 16 + 13); ctx.stroke();
-  }
-  var damage = 1 - game.barricade / BAR_MAX;
-  if (damage > 0.01) {
-    ctx.fillStyle = 'rgba(0,0,0,' + (0.3 + damage * 0.45) + ')';
-    var holes = Math.round(damage * 16);
-    for (var hI = 0; hI < holes; hI++) {
-      var hx = ((hI * 173 + 40) % (W - 80)) + 40;
-      var hy = by + ((hI * 61) % 40);
-      ctx.fillRect(hx, hy, 16, 10);
-    }
-  }
+  /* Zombies */
+  for (var zi = 0; zi < zombies.length; zi++) drawZombieTile(zombies[zi]);
 
-  /* Fadenkreuz auf dem Ziel */
-  var t = target();
-  if (t && state === 'playing' && !resolving) {
-    var tp = screenPos(t);
-    var cx = tp.x, cy = tp.y - tp.h * 0.75, cr = tp.h * 0.24;
-    ctx.strokeStyle = 'rgba(255, 107, 107, 0.9)';
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx - cr * 1.5, cy); ctx.lineTo(cx - cr * 0.6, cy);
-    ctx.moveTo(cx + cr * 0.6, cy); ctx.lineTo(cx + cr * 1.5, cy);
-    ctx.moveTo(cx, cy - cr * 1.5); ctx.lineTo(cx, cy - cr * 0.6);
-    ctx.moveTo(cx, cy + cr * 0.6); ctx.lineTo(cx, cy + cr * 1.5);
-    ctx.stroke();
-  }
-
-  /* Mündungsblitz */
-  if (Date.now() - fxShot < 160) {
-    ctx.fillStyle = '#ffd75e';
-    ctx.beginPath(); ctx.arc(W / 2, 500, 12, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#ffd75e';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(W / 2 - 26, 500); ctx.lineTo(W / 2 - 14, 500);
-    ctx.moveTo(W / 2 + 14, 500); ctx.lineTo(W / 2 + 26, 500);
-    ctx.stroke();
+  /* Fundstücke */
+  ctx.font = '26px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  for (var di = 0; di < drops.length; di++) {
+    var dr = drops[di];
+    ctx.fillStyle = dr.kind === 'skull' ? '#e3b341' : '#7ee787';
+    ctx.fillText(dr.icon, dr.x, dr.y);
   }
 
   /* Partikel */
-  for (var pai = 0; pai < particles.length; pai++) {
-    var p = particles[pai];
+  for (var pi = 0; pi < particles.length; pi++) {
+    var p = particles[pi];
     ctx.globalAlpha = Math.max(0, p.life / p.max);
     ctx.fillStyle = p.color;
     ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
   }
   ctx.globalAlpha = 1;
+
+  /* Barrikade (Paddle) */
+  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  var px = paddle.cx - pw / 2;
+  ctx.fillStyle = '#8a6d3b';
+  ctx.fillRect(px, PADDLE_Y, pw, PADDLE_H);
+  ctx.fillStyle = '#5d4a26';
+  ctx.fillRect(px, PADDLE_Y + 10, pw, 4);
+  /* Pfähle */
+  ctx.fillStyle = '#6b532e';
+  ctx.fillRect(px + 6, PADDLE_Y - 8, 8, PADDLE_H + 16);
+  ctx.fillRect(px + pw - 14, PADDLE_Y - 8, 8, PADDLE_H + 16);
+
+  /* Bälle (Leuchtkugeln) */
+  ctx.shadowColor = '#ffd75e';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#ffd75e';
+  for (var bi = 0; bi < balls.length; bi++) {
+    var b = balls[bi];
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+
+  /* Hinweis beim ersten Abwurf */
+  if (state === 'playing' && !firstLaunchDone && balls.length && balls[0].attached) {
+    ctx.fillStyle = 'rgba(230, 237, 243, 0.75)';
+    ctx.font = '15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Tippen = Leuchtkugel abwerfen', W / 2, PADDLE_Y - 40);
+  }
+
+  /* Banner */
+  if (bannerTimer > 0) {
+    ctx.globalAlpha = Math.min(1, bannerTimer);
+    ctx.fillStyle = '#e6edf3';
+    ctx.font = 'bold 38px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(banner, W / 2, 64);
+    ctx.globalAlpha = 1;
+  }
 }
 
+/* ============== HUD ============== */
+function updateHud() {
+  $('hudWave').textContent = wave;
+  $('hudScore').textContent = Math.max(best, score);
+  $('hudLives').textContent = '❤'.repeat(hp) + '🖤'.repeat(Math.max(0, 3 - hp));
+  $('hudBest').textContent = Math.max(best, score);
+}
+
+/* ============== Eingaben ============== */
+var touch = null;
+
+canvas.addEventListener('touchstart', function (e) {
+  e.preventDefault();
+  if (state !== 'playing') return;
+  var t = e.touches[0];
+  var r = canvas.getBoundingClientRect();
+  var x = (t.clientX - r.left) * W / r.width;
+  touch = { startX: x, startPaddle: paddle.cx, lastX: x, moved: false, at: Date.now() };
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function (e) {
+  e.preventDefault();
+  if (!touch || state !== 'playing') return;
+  var t = e.touches[0];
+  var r = canvas.getBoundingClientRect();
+  var x = (t.clientX - r.left) * W / r.width;
+  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  var nc = touch.startPaddle + (x - touch.startX) * 1.15;
+  paddle.cx = Math.max(pw / 2, Math.min(W - pw / 2, nc));
+  if (Math.abs(x - touch.startX) > 12) touch.moved = true;
+  touch.lastX = x;
+}, { passive: false });
+
+canvas.addEventListener('touchend', function (e) {
+  e.preventDefault();
+  if (touch && state === 'playing' && !touch.moved && Date.now() - touch.at < 400) launch();
+  touch = null;
+}, { passive: false });
+
+canvas.addEventListener('mousemove', function (e) {
+  if (state !== 'playing') return;
+  var r = canvas.getBoundingClientRect();
+  var x = (e.clientX - r.left) * W / r.width;
+  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  paddle.cx = Math.max(pw / 2, Math.min(W - pw / 2, x));
+});
+canvas.addEventListener('mousedown', function (e) {
+  if (state === 'playing') { e.preventDefault(); launch(); }
+});
+
+$('btnStart').addEventListener('click', newGame);
+$('btnSave').addEventListener('click', function () { saveScoreToRepo(finishedRun); });
+
+/* ============== Hauptschleife ============== */
 var last = performance.now();
 function frame(ts) {
   var dt = Math.min((ts - last) / 1000, 0.05);
   last = ts;
-  for (var i = particles.length - 1; i >= 0; i--) {
-    var p = particles[i];
-    p.x += p.vx * dt; p.y += p.vy * dt;
-    p.life -= dt;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
+  if (state === 'playing') update(dt);
   draw();
   requestAnimationFrame(frame);
 }
@@ -650,7 +675,7 @@ async function saveScoreToRepo(run) {
           $type: CONFIG.collection,
           createdAt: new Date().toISOString(),
           score: run.score,
-          round: run.round,
+          wave: run.wave,
           kills: run.kills
         }
       }
@@ -675,21 +700,20 @@ async function loadCloudScores() {
     recs.slice(0, 10).forEach(function (r) {
       var li = document.createElement('li');
       var when = r.createdAt ? new Date(r.createdAt).toLocaleString('de-DE') : '';
-      var rw = (r.round != null ? r.round : (r.wave != null ? r.wave : '?'));
-      li.textContent = (r.score || 0) + ' Punkte · Runde ' + rw + ' · ' + (r.kills != null ? r.kills : '?') + ' Kills · ' + when;
+      var rw = (r.wave != null ? r.wave : (r.round != null ? r.round : '?'));
+      li.textContent = (r.score || 0) + ' Punkte · Welle ' + rw + ' · ' + (r.kills != null ? r.kills : '?') + ' Kills · ' + when;
       ol.appendChild(li);
     });
     $('cloudList').hidden = false;
     var cloudBest = 0;
     recs.forEach(function (r) { if ((r.score || 0) > cloudBest) cloudBest = r.score || 0; });
-    if (cloudBest > best) { best = cloudBest; }
+    if (cloudBest > best) { best = cloudBest; updateHud(); }
   } catch (e) {
     /* Repo-Liste nicht lesbar – Highscores laufen trotzdem lokal */
   }
 }
 
 updateHud();
-updateButtons();
 updateAuthUI();
 initOAuth();
 
