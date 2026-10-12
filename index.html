@@ -55,7 +55,7 @@
   <canvas id="game" width="420" height="720"></canvas>
   <div id="overlay">
     <h2 id="ovTitle">🧟 AT Zombies – Breakout</h2>
-    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>🧟 Walker +25 · 👻 Läufer +35 · 🎃 Bruter (3 Treffer) +50.<br>Jeder Zombie, der die rote Linie erreicht, kostet 1 ❤. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
+    <p id="ovText">Finger ziehen (oder Maus) = Kuh bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>🧟 Walker +25 · 👻 Läufer +35 · 🎃 Bruter (3 Treffer) +50.<br>Jeder Zombie, der die rote Linie erreicht, kostet 1 ❤. Power-ups fangen: ↔ breiter · 🥛 Milch · ● Multi-Ball · ❤ Leben · 💀 Horde vor · 🥢 schmaler!</p>
     <button id="btnStart">Los geht's</button>
     <button id="btnSave" class="secondary" hidden>Highscore in mein Repo speichern</button>
   </div>
@@ -120,17 +120,21 @@ var EMOJI_FONT = '"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sys
 var DANGER_Y = 560;
 var PADDLE_Y = 660, PADDLE_H = 14, PADDLE_W = 96;
 var DROP_KINDS = [
-  { kind: 'wide',  icon: '↔', chance: 0.40 },
-  { kind: 'multi', icon: '●', chance: 0.30 },
-  { kind: 'life',  icon: '❤', chance: 0.10 },
-  { kind: 'skull', icon: '💀', chance: 0.20 }
+  { kind: 'wide',   icon: '↔', chance: 0.26 },
+  { kind: 'milk',    icon: '🥛', chance: 0.22 },
+  { kind: 'multi',   icon: '●', chance: 0.20 },
+  { kind: 'narrow',  icon: '🥢', chance: 0.12 },
+  { kind: 'skull',   icon: '💀', chance: 0.12 },
+  { kind: 'life',    icon: '❤', chance: 0.08 }
 ];
 
 var state = 'menu';
 var level = 1, score = 0, kills = 0, hp = 3, gameTime = 0, rowTimer = 0;
 var best = Number(store.getItem('atz_best') || 0);
 var zombies = [], balls = [], drops = [], particles = [];
-var paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
+var paddle = { cx: W / 2 };
+var wideTimer = 0, narrowTimer = 0, milkTimer = 0, milkAngle = 0, milkFire = 0, mooTimer = 0;
+var milks = [];
 var bannerTimer = 0, banner = '';
 var finishedRun = null;
 var firstLaunchDone = false;
@@ -140,11 +144,26 @@ function scrollSpeed() { return Math.min(30, 12 + (level - 1) * 1.5); }
 function rowEvery() { return 80 / scrollSpeed(); }
 function ballSpeed() { return Math.min(480, 330 + (level - 1) * 15); }
 
+/* Kuh-Breite je nach Power-up */
+function cowW() { return PADDLE_W * (wideTimer > 0 ? 1.5 : (narrowTimer > 0 ? 0.65 : 1)); }
+
+/* Milch-Modus: ein Tipp = zwei senkrechte Milchstrahlen, kurze Abklingzeit */
+function fireMilk() {
+  if (state !== 'playing' || milkTimer <= 0 || milkFire > 0 || milkAngle < Math.PI * 0.9) return;
+  milkFire = 0.3;
+  var cw = cowW();
+  var center = paddle.cx + cw / 2 - (cw - 30) * 0.34 - 7.5;
+  milks.push({ x: center - 6, y: PADDLE_Y - 6, vx: 0, vy: -420 });
+  milks.push({ x: center + 6, y: PADDLE_Y - 6, vx: 0, vy: -420 });
+  mooTimer = 0.8;
+}
+
 /* ============== Spielablauf ============== */
 function newGame() {
   level = 1; score = 0; kills = 0; hp = 3; gameTime = 0;
   zombies = []; balls = []; drops = []; particles = [];
-  paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
+  paddle = { cx: W / 2 };
+  wideTimer = 0; narrowTimer = 0; milkTimer = 0; milkAngle = 0; milkFire = 0; mooTimer = 0; milks = [];
   rowTimer = 0.8; finishedRun = null; firstLaunchDone = false;
   balls = [makeBall(true)];
   banner = 'Welle 1'; bannerTimer = 1.6;
@@ -234,6 +253,13 @@ function loseLife(msg) {
 
 function flashBanner(t) { banner = t; bannerTimer = 1.4; }
 
+function splatMilk(x, y) {
+  for (var i = 0; i < 8; i++) {
+    var ang = Math.random() * Math.PI * 2, sp = 30 + Math.random() * 110;
+    particles.push({ x: x, y: y, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, life: 0.3 + Math.random() * 0.25, max: 0.55, color: '#eef4fb' });
+  }
+}
+
 function launch() {
   var b = null;
   for (var i = 0; i < balls.length; i++) { if (balls[i].attached) { b = balls[i]; break; } }
@@ -292,7 +318,12 @@ function killZombie(z) {
 }
 
 function applyDrop(kind) {
-  if (kind === 'wide') { paddle.wideTimer = 15; }
+  if (kind === 'wide') { wideTimer = 15; narrowTimer = 0; }
+  else if (kind === 'narrow') {
+    if (wideTimer > 0) { wideTimer = 0; } /* breit -> normal */
+    else { narrowTimer = 12; }         /* normal -> schmal */
+  }
+  else if (kind === 'milk') { milkTimer = 10; milkFire = 0; }
   else if (kind === 'multi') {
     var src = null;
     for (var i = 0; i < balls.length; i++) { if (!balls[i].attached) { src = balls[i]; break; } }
@@ -310,9 +341,19 @@ function applyDrop(kind) {
 }
 
 function update(dt) {
-  /* Paddlebreite (Power-up) */
-  paddle.wideTimer = Math.max(0, paddle.wideTimer - dt);
-  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  /* Kuh-Breite, Milch-Modus und Muuh (Power-ups) */
+  wideTimer = Math.max(0, wideTimer - dt);
+  narrowTimer = Math.max(0, narrowTimer - dt);
+  var hadMilk = milkTimer > 0;
+  milkTimer = Math.max(0, milkTimer - dt);
+  milkFire = Math.max(0, milkFire - dt);
+  mooTimer = Math.max(0, mooTimer - dt);
+  var milkActive = milkTimer > 0;
+  var target = milkActive ? Math.PI : 0;
+  if (Math.abs(target - milkAngle) < 0.01) milkAngle = target;
+  else milkAngle += (target - milkAngle) * Math.min(1, dt * 9);
+  if (hadMilk && !milkActive) flashBanner('Milch-Modus vorbei');
+  var pw = cowW();
 
   /* Endlos-Strom: Zombies scrollen durchgehend, neue Reihen rutschen von oben nach */
   gameTime += dt;
@@ -357,6 +398,7 @@ function update(dt) {
       b.vx = Math.sin(theta) * sp;
       b.vy = -Math.cos(theta) * sp;
       b.y = PADDLE_Y - b.r;
+      mooTimer = 0.8;
     }
 
     /* Unten raus */
@@ -390,6 +432,30 @@ function update(dt) {
   if (balls.length === 0) {
     loseLife('Leuchtkugel verloren!');
     return;
+  }
+
+  /* Milchstrahlen bewegen + Zombies treffen */
+  for (var mi = milks.length - 1; mi >= 0; mi--) {
+    var m = milks[mi];
+    m.x += m.vx * dt;
+    m.y += m.vy * dt;
+    if (m.y < -20 || m.x < -10 || m.x > W + 10) { milks.splice(mi, 1); continue; }
+    for (var mj = 0; mj < zombies.length; mj++) {
+      var z2 = zombies[mj];
+      var cx2 = Math.max(z2.x, Math.min(m.x, z2.x + z2.w));
+      var cy2 = Math.max(z2.y, Math.min(m.y, z2.y + z2.h));
+      var dx2 = m.x - cx2, dy2 = m.y - cy2;
+      if (dx2 * dx2 + dy2 * dy2 <= 25) {
+        z2.hp--;
+        z2.flash = Date.now();
+        if (z2.hp <= 0) killZombie(z2);
+        else score += 5;
+        splatMilk(m.x, m.y);
+        milks.splice(mi, 1);
+        updateHud();
+        break;
+      }
+    }
   }
 
   /* Fundstücke fallen */
@@ -451,6 +517,165 @@ function drawZombieTile(z) {
   }
 }
 
+/* ============== Kuh (Schläger) ============== */
+function rr(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawCow(t) {
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.beginPath();
+  ctx.ellipse(paddle.cx, PADDLE_Y + 52, 44, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.save();
+  ctx.translate(paddle.cx, PADDLE_Y + 10);
+  ctx.rotate(milkAngle); /* 0 = normal, PI = auf dem Kopf fuer den Milch-Modus */
+  drawCowSprite(t);
+  ctx.restore();
+}
+
+function drawCowSprite(t) {
+  var cw = cowW();
+  var hw = cw / 2;
+  var bodyW = cw - 30;
+  var bodyX = -hw, bodyY = -16, bodyH = 30;
+  var bob = Math.sin(t * 2.2) * 1.5;
+  ctx.translate(0, bob * 0.4);
+
+  /* Schwanz mit Wedel */
+  var swish = Math.sin(t * 2.4) * 6;
+  ctx.strokeStyle = '#d9d9d4';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(bodyX + 4, bodyY + 8);
+  ctx.quadraticCurveTo(bodyX - 10, bodyY + 18 + swish * 0.5, bodyX - 7, bodyY + 30 + swish);
+  ctx.stroke();
+  ctx.fillStyle = '#23272b';
+  ctx.beginPath();
+  ctx.arc(bodyX - 7, bodyY + 30 + swish, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  /* Beine – Positionen skalieren mit der Kuh-Breite */
+  ctx.fillStyle = '#d9d9d4';
+  rr(bodyX + bodyW * 0.1, bodyY + bodyH - 4, 8, 16, 3); ctx.fill();
+  rr(bodyX + bodyW * 0.66, bodyY + bodyH - 4, 8, 16, 3); ctx.fill();
+  ctx.fillStyle = '#f5f5f2';
+  rr(bodyX + bodyW * 0.22, bodyY + bodyH - 2, 9, 18, 3); ctx.fill();
+  rr(bodyX + bodyW * 0.78, bodyY + bodyH - 2, 9, 18, 3); ctx.fill();
+  ctx.fillStyle = '#23272b';
+  ctx.fillRect(bodyX + bodyW * 0.1, bodyY + bodyH + 12, 8, 5);
+  ctx.fillRect(bodyX + bodyW * 0.66, bodyY + bodyH + 12, 8, 5);
+  ctx.fillRect(bodyX + bodyW * 0.22, bodyY + bodyH + 14, 9, 5);
+  ctx.fillRect(bodyX + bodyW * 0.78, bodyY + bodyH + 14, 9, 5);
+
+  /* Koerper */
+  ctx.fillStyle = '#f5f5f2';
+  ctx.strokeStyle = '#2b2b2b';
+  ctx.lineWidth = 1.5;
+  rr(bodyX, bodyY, bodyW, bodyH, 12);
+  ctx.fill(); ctx.stroke();
+  /* Holsteiner-Flecken */
+  ctx.fillStyle = '#23272b';
+  ctx.beginPath(); ctx.ellipse(bodyX + bodyW * 0.25, bodyY + 11, bodyW * 0.16, 7, 0.3, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bodyX + bodyW * 0.62, bodyY + 21, bodyW * 0.13, 6, -0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(bodyX + bodyW * 0.85, bodyY + 9, bodyW * 0.1, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+
+  /* Euter am Bauch, zwischen Vorder- und Hinterbeinen */
+  ctx.fillStyle = '#f0b9c9';
+  rr(bodyX + bodyW * 0.34, bodyY + bodyH - 2, 15, 9, 5); ctx.fill();
+  ctx.strokeStyle = '#c98da1'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#e8a3ba';
+  ctx.beginPath(); ctx.arc(bodyX + bodyW * 0.34 + 4, bodyY + bodyH + 7, 2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bodyX + bodyW * 0.34 + 11, bodyY + bodyH + 7, 2, 0, Math.PI * 2); ctx.fill();
+
+  /* Kopf */
+  var headX = hw - 30, headY = bodyY - 3, headW = 30, headH = 34;
+  var earWig = Math.sin(t * 3) * 2;
+  ctx.fillStyle = '#d9d9d4';
+  ctx.beginPath(); ctx.ellipse(headX - 2, headY - 2 + earWig, 7, 4.5, -0.5, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#f5f5f2';
+  ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 1.5;
+  rr(headX, headY, headW, headH, 10);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#23272b';
+  ctx.beginPath(); ctx.ellipse(headX + 8, headY + 7, 6, 5, 0.2, 0, Math.PI * 2); ctx.fill();
+
+  /* Hoerner */
+  ctx.strokeStyle = '#e3d5b3';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath(); ctx.arc(headX + 9, headY + 2, 5, Math.PI * 1.05, Math.PI * 1.75); ctx.stroke();
+  ctx.beginPath(); ctx.arc(headX + 22, headY + 2, 5, Math.PI * 1.25, Math.PI * 1.95); ctx.stroke();
+
+  /* Vorderes Ohr */
+  ctx.fillStyle = '#f5f5f2';
+  ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(headX + 29, headY + 1 - earWig, 7, 4.5, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#eec4b5';
+  ctx.beginPath(); ctx.ellipse(headX + 29, headY + 1 - earWig, 4, 2.5, 0.5, 0, Math.PI * 2); ctx.fill();
+
+  /* Augen – Pupillen folgen der Leuchtkugel */
+  var tgt = balls.length ? balls[0] : { x: paddle.cx, y: PADDLE_Y - 14 };
+  var lx = Math.cos(-milkAngle) * (tgt.x - paddle.cx) - Math.sin(-milkAngle) * (tgt.y - (PADDLE_Y + 10));
+  var ly = Math.sin(-milkAngle) * (tgt.x - paddle.cx) + Math.cos(-milkAngle) * (tgt.y - (PADDLE_Y + 10));
+  var ex1 = headX + 8, ex2 = headX + 21, ey = headY + 15;
+  var blink = (t % 4.3) < 0.12;
+  var pdx = Math.max(-1.7, Math.min(1.7, (lx - (ex1 + 6)) / 30));
+  var pdy = Math.max(-1.5, Math.min(2, (ly - ey) / 60));
+  ctx.fillStyle = '#23272b';
+  if (blink) {
+    ctx.fillRect(ex1 - 3, ey - 1, 6, 2);
+    ctx.fillRect(ex2 - 3, ey - 1, 6, 2);
+  } else {
+    ctx.beginPath(); ctx.arc(ex1 + pdx, ey + pdy, 2.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex2 + pdx, ey + pdy, 2.6, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* Schnauze */
+  ctx.fillStyle = '#e8b7a0';
+  rr(headX + 4, headY + 21, headW - 6, 13, 7);
+  ctx.fill();
+  ctx.strokeStyle = '#a86a55'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#a86a55';
+  ctx.beginPath(); ctx.arc(headX + 11, headY + 27, 1.6, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(headX + 21, headY + 27, 1.6, 0, Math.PI * 2); ctx.fill();
+
+  /* Muuh! */
+  if (mooTimer > 0) {
+    ctx.fillStyle = '#a86a55';
+    ctx.beginPath(); ctx.ellipse(headX + 16, headY + 33, 5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = Math.min(1, mooTimer);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Muuh!', 0, headY - 12);
+    ctx.globalAlpha = 1;
+  }
+
+  /* Glocke */
+  ctx.strokeStyle = '#8a6d3b';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(headX + 2, headY + 20); ctx.lineTo(headX - 6, headY + 30); ctx.stroke();
+  ctx.fillStyle = '#e3b341';
+  ctx.beginPath();
+  ctx.moveTo(headX - 10, headY + 29);
+  ctx.lineTo(headX - 2, headY + 29);
+  ctx.lineTo(headX - 3, headY + 39);
+  ctx.lineTo(headX - 9, headY + 39);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#5d4a26'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#5d4a26';
+  ctx.beginPath(); ctx.arc(headX - 6, headY + 39, 1.5, 0, Math.PI * 2); ctx.fill();
+}
+
 function draw() {
   /* Himmel */
   ctx.fillStyle = '#0b1220';
@@ -487,12 +712,17 @@ function draw() {
   for (var zi = 0; zi < zombies.length; zi++) drawZombieTile(zombies[zi]);
 
   /* Fundstücke */
-  ctx.font = '26px system-ui, sans-serif';
   ctx.textAlign = 'center';
   for (var di = 0; di < drops.length; di++) {
     var dr = drops[di];
-    ctx.fillStyle = dr.kind === 'skull' ? '#e3b341' : '#7ee787';
-    ctx.fillText(dr.icon, dr.x, dr.y);
+    if (dr.kind === 'wide' || dr.kind === 'multi') {
+      ctx.font = '26px system-ui, sans-serif';
+      ctx.fillStyle = dr.kind === 'wide' ? '#7ee787' : '#9ecbff';
+      ctx.fillText(dr.icon, dr.x, dr.y);
+    } else {
+      ctx.font = '22px ' + EMOJI_FONT;
+      ctx.fillText(dr.icon, dr.x, dr.y + 8);
+    }
   }
 
   /* Partikel */
@@ -504,17 +734,17 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  /* Barrikade (Paddle) */
-  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
-  var px = paddle.cx - pw / 2;
-  ctx.fillStyle = '#8a6d3b';
-  ctx.fillRect(px, PADDLE_Y, pw, PADDLE_H);
-  ctx.fillStyle = '#5d4a26';
-  ctx.fillRect(px, PADDLE_Y + 10, pw, 4);
-  /* Pfähle */
-  ctx.fillStyle = '#6b532e';
-  ctx.fillRect(px + 6, PADDLE_Y - 8, 8, PADDLE_H + 16);
-  ctx.fillRect(px + pw - 14, PADDLE_Y - 8, 8, PADDLE_H + 16);
+  /* Kuh (Schläger) */
+  drawCow(Date.now() / 1000);
+
+  /* Milchstrahlen */
+  ctx.shadowColor = '#bfe3ff';
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = '#f4f9ff';
+  for (var mi = 0; mi < milks.length; mi++) {
+    ctx.beginPath(); ctx.arc(milks[mi].x, milks[mi].y, 5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
 
   /* Bälle (Leuchtkugeln) */
   ctx.shadowColor = '#ffd75e';
@@ -543,6 +773,15 @@ function draw() {
     ctx.fillText(banner, W / 2, 64);
     ctx.globalAlpha = 1;
   }
+
+  /* Aktive Power-ups */
+  ctx.textAlign = 'right';
+  ctx.font = '15px system-ui, sans-serif';
+  ctx.fillStyle = '#c7d1d9';
+  var py = 24;
+  if (milkTimer > 0) { ctx.fillText('🥛 ' + Math.ceil(milkTimer) + ' s', W - 12, py); py += 20; }
+  if (wideTimer > 0) { ctx.fillText('↔ ' + Math.ceil(wideTimer) + ' s', W - 12, py); py += 20; }
+  if (narrowTimer > 0) { ctx.fillText('🥢 ' + Math.ceil(narrowTimer) + ' s', W - 12, py); }
 }
 
 /* ============== HUD ============== */
@@ -571,7 +810,7 @@ canvas.addEventListener('touchmove', function (e) {
   var t = e.touches[0];
   var r = canvas.getBoundingClientRect();
   var x = (t.clientX - r.left) * W / r.width;
-  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  var pw = cowW();
   var nc = touch.startPaddle + (x - touch.startX) * 1.15;
   paddle.cx = Math.max(pw / 2, Math.min(W - pw / 2, nc));
   if (Math.abs(x - touch.startX) > 12) touch.moved = true;
@@ -580,7 +819,7 @@ canvas.addEventListener('touchmove', function (e) {
 
 canvas.addEventListener('touchend', function (e) {
   e.preventDefault();
-  if (touch && state === 'playing' && !touch.moved && Date.now() - touch.at < 400) launch();
+  if (touch && state === 'playing' && !touch.moved && Date.now() - touch.at < 400) { launch(); fireMilk(); }
   touch = null;
 }, { passive: false });
 
@@ -588,11 +827,11 @@ canvas.addEventListener('mousemove', function (e) {
   if (state !== 'playing') return;
   var r = canvas.getBoundingClientRect();
   var x = (e.clientX - r.left) * W / r.width;
-  var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
+  var pw = cowW();
   paddle.cx = Math.max(pw / 2, Math.min(W - pw / 2, x));
 });
 canvas.addEventListener('mousedown', function (e) {
-  if (state === 'playing') { e.preventDefault(); launch(); }
+  if (state === 'playing') { e.preventDefault(); launch(); fireMilk(); }
 });
 
 $('btnStart').addEventListener('click', newGame);
