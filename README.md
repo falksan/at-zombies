@@ -1,7 +1,7 @@
 # AT Zombies 🧟
 
 **Breakout gegen eine Zombie-Horde**: Die Horde steht in Reihen und kriecht langsam
-auf dich zu. Du lenkst die Barrikade am unteren Rand und wirfst eine Leuchtkugel ab,
+auf dich zu. Du lenkst die Kuh am unteren Rand und wirfst eine Leuchtkugel ab,
 die Zombies beim Auftreffen erledigt. Optional mit Anmeldung über das AT Protocol
 (Bluesky) – Highscores werden als eigene Records **im Daten-Repo des Spielers**
 gespeichert. Kein Backend, keine eigene Datenbank.
@@ -18,13 +18,13 @@ GitHub Pages aktivieren (einmalig):
 
 | Element | Bedeutung |
 |---|---|
-| ↔ Barrikade | Dein Paddle – Finger ziehen (oder Maus) bewegt sie |
+| 🐄 Kuh (Schläger) | Finger ziehen (oder Maus) bewegt sie – der Rücken prallt die Leuchtkugel ab, die Augen folgen der Kugel, beim Abprallen gibt es ein „Muuh!“ |
 | Leuchtkugel | Der Ball – Tippen/Klick wirft ihn ab, fällt er ins Leere: −1 Leben |
 | 🧟 Walker | 1 Treffer, +25 Punkte (gemischte Zombie-Emojis 🧟 🧟‍♀️ 🧟‍♂️) |
 | 👻 Läufer | 1 Treffer, +35 Punkte, zappelt in der Reihe |
 | 🎃 Bruter | 3 Treffer, +50 Punkte |
 | Gefahrenzone (rote Linie) | Jeder Zombie, der sie erreicht, ist durchgebrochen und kostet 1 Leben |
-| Fundstücke | ↔ breitere Barrikade · ● Multi-Ball · ❤ Extra-Leben · 💀 die Horde rückt sofort vor |
+| Fundstücke | ↔ Kuh 15 s breiter · 🥛 Milch-Modus (10 s): Kuh dreht sich um, jedes Tippen schießt zwei senkrechte Milchstrahlen · ● Multi-Ball · ❤ Extra-Leben · 💀 die Horde rückt sofort vor · 🥢 Kuh wird schmaler (breit → normal → schmal, 12 s) |
 
 Die Horde kommt wie ein Filmabspann: als Endlos-Strom, der kontinuierlich von oben
 hereinrollt – Reihen mit mal mehr, mal weniger Zombies, oft als enges
