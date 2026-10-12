@@ -23,12 +23,15 @@ GitHub Pages aktivieren (einmalig):
 | 🧟 Walker | 1 Treffer, +25 Punkte (gemischte Zombie-Emojis 🧟 🧟‍♀️ 🧟‍♂️) |
 | 👻 Läufer | 1 Treffer, +35 Punkte, zappelt in der Reihe |
 | 🎃 Bruter | 3 Treffer, +50 Punkte |
-| Gefahrenzone (rote Linie) | Erreicht die Horde sie, gibt es −1 Leben und die Horde weicht zurück |
+| Gefahrenzone (rote Linie) | Jeder Zombie, der sie erreicht, ist durchgebrochen und kostet 1 Leben |
 | Fundstücke | ↔ breitere Barrikade · ● Multi-Ball · ❤ Extra-Leben · 💀 die Horde rückt sofort vor |
 
-Horde komplett erledigt = +50 Punkte, nächste Welle (mehr Reihen, schnellere Horde,
-schnellere Leuchtkugel). Reine Wisch-/Tipp-Steuerung, Spielfeld im Hochkant-Format –
-optimiert fürs Handy, läuft auch auf dem Desktop.
+Die Horde kommt wie ein Filmabspann: als Endlos-Strom, der kontinuierlich von oben
+hereinrollt – Reihen mit mal mehr, mal weniger Zombies und Lücken dazwischen, kein
+Nachrücken pro Kill, kein Block-Reset. Mit der Zeit wird alles schwerer: Der Strom
+läuft schneller und dichter (mehr Zombies pro Reihe, ab Welle 2 Läufer, ab Welle 3
+Bruter), und alle 40 Sekunden steigt die „Welle“. Reine Wisch-/Tipp-Steuerung, Spielfeld
+im Hochkant-Format – optimiert fürs Handy, läuft auch auf dem Desktop.
 
 ## Wie die ATproto-Anbindung funktioniert
 
