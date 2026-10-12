@@ -27,7 +27,8 @@ GitHub Pages aktivieren (einmalig):
 | Fundstücke | ↔ breitere Barrikade · ● Multi-Ball · ❤ Extra-Leben · 💀 die Horde rückt sofort vor |
 
 Die Horde kommt wie ein Filmabspann: als Endlos-Strom, der kontinuierlich von oben
-hereinrollt – Reihen mit mal mehr, mal weniger Zombies und Lücken dazwischen, kein
+hereinrollt – Reihen mit mal mehr, mal weniger Zombies, oft als enges
+Grüppchen nebeneinander, mit Lücken dazwischen, kein
 Nachrücken pro Kill, kein Block-Reset. Mit der Zeit wird alles schwerer: Der Strom
 läuft schneller und dichter (mehr Zombies pro Reihe, ab Welle 2 Läufer, ab Welle 3
 Bruter), und alle 40 Sekunden steigt die „Welle“. Reine Wisch-/Tipp-Steuerung, Spielfeld
