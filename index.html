@@ -55,7 +55,7 @@
   <canvas id="game" width="420" height="720"></canvas>
   <div id="overlay">
     <h2 id="ovTitle">🧟 AT Zombies – Breakout</h2>
-    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>🧟 Walker +25 · 👻 Läufer +35 · 🎃 Bruter (3 Treffer) +50.<br>Erreicht die Horde die rote Linie: −1 Leben. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
+    <p id="ovText">Finger ziehen (oder Maus) = Barrikade bewegen · Tippen/Klick = Leuchtkugel abwerfen.<br>🧟 Walker +25 · 👻 Läufer +35 · 🎃 Bruter (3 Treffer) +50.<br>Jeder Zombie, der die rote Linie erreicht, kostet 1 ❤. Power-ups fangen: ↔ breiter · ● Multi-Ball · ❤ Leben · 💀 Vorsicht!</p>
     <button id="btnStart">Los geht's</button>
     <button id="btnSave" class="secondary" hidden>Highscore in mein Repo speichern</button>
   </div>
@@ -127,24 +127,24 @@ var DROP_KINDS = [
 ];
 
 var state = 'menu';
-var wave = 1, score = 0, kills = 0, hp = 3;
+var level = 1, score = 0, kills = 0, hp = 3, gameTime = 0, rowTimer = 0;
 var best = Number(store.getItem('atz_best') || 0);
 var zombies = [], balls = [], drops = [], particles = [];
 var paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
-var stepTimer = 0, bannerTimer = 0, banner = '';
+var bannerTimer = 0, banner = '';
 var finishedRun = null;
 var firstLaunchDone = false;
 
-function stepEvery() { return Math.max(4.5, 11 - (wave - 1) * 0.7); }
-function ballSpeed() { return Math.min(480, 330 + (wave - 1) * 15); }
+function scrollSpeed() { return Math.min(38, 18 + (level - 1) * 2); }
+function rowEvery() { return Math.max(2.2, 4.5 - (level - 1) * 0.25); }
+function ballSpeed() { return Math.min(480, 330 + (level - 1) * 15); }
 
 /* ============== Spielablauf ============== */
 function newGame() {
-  wave = 1; score = 0; kills = 0; hp = 3;
+  level = 1; score = 0; kills = 0; hp = 3; gameTime = 0;
   zombies = []; balls = []; drops = []; particles = [];
   paddle = { cx: W / 2, w: PADDLE_W, wideTimer: 0 };
-  stepTimer = 0; finishedRun = null; firstLaunchDone = false;
-  spawnHorde(1);
+  rowTimer = 0.8; finishedRun = null; firstLaunchDone = false;
   balls = [makeBall(true)];
   banner = 'Welle 1'; bannerTimer = 1.6;
   state = 'playing';
@@ -156,36 +156,62 @@ function makeBall(attached) {
   return { x: paddle.cx, y: PADDLE_Y - 14, vx: 0, vy: 0, r: 7, attached: !!attached };
 }
 
-function spawnHorde(w) {
-  zombies = [];
-  var rows = Math.min(2 + Math.ceil(w / 2), 5);
-  for (var r = 0; r < rows; r++) {
-    for (var c = 0; c < 5; c++) {
-      var type = 'walker';
-      var roll = Math.random();
-      if (w >= 3 && roll < 0.12) type = 'brute';
-      else if (w >= 2 && roll < 0.30) type = 'runner';
-      var emojis = TYPE[type].emoji;
-      zombies.push({
-        x: 24 + c * 78, y: 116 + r * 60, w: 64, h: 52,
-        hp: TYPE[type].hp, maxHp: TYPE[type].hp,
-        type: type, flash: 0, seed: Math.random() * 10,
-        emoji: emojis[Math.floor(Math.random() * emojis.length)]
-      });
-    }
+/* Endlos-Strom wie ein Filmabspann: eine neue Reihe rutscht von oben rein,
+   mit zufaellig vielen Zombies und Luecken dazwischen */
+function spawnRow() {
+  var cols = [0, 1, 2, 3, 4];
+  for (var i = cols.length - 1; i > 0; i--) {
+    var jx = Math.floor(Math.random() * (i + 1));
+    var tmp = cols[i]; cols[i] = cols[jx]; cols[jx] = tmp;
+  }
+  var maxPerRow = Math.min(5, 2 + Math.floor(level / 2));
+  var count = 1 + Math.floor(Math.random() * maxPerRow);
+  var runnerChance = level >= 2 ? Math.min(0.35, 0.15 + (level - 2) * 0.05) : 0;
+  var bruteChance = level >= 3 ? Math.min(0.25, 0.10 + (level - 3) * 0.03) : 0;
+  for (var c = 0; c < count; c++) {
+    var type = 'walker';
+    var roll = Math.random();
+    if (roll < bruteChance) type = 'brute';
+    else if (roll < bruteChance + runnerChance) type = 'runner';
+    var emojis = TYPE[type].emoji;
+    zombies.push({
+      x: 24 + cols[c] * 78, y: -64, w: 64, h: 52,
+      hp: TYPE[type].hp, maxHp: TYPE[type].hp,
+      type: type, flash: 0, seed: Math.random() * 10,
+      emoji: emojis[Math.floor(Math.random() * emojis.length)]
+    });
   }
 }
 
-function hordeDown(by) {
+function pushHordeDown(by) {
   for (var i = 0; i < zombies.length; i++) zombies[i].y += by;
-  /* Gefahrenlinie erreicht? */
-  var danger = false;
-  for (var j = 0; j < zombies.length; j++) {
-    if (zombies[j].y + zombies[j].h >= DANGER_Y) { danger = true; break; }
+  checkDanger();
+}
+
+/* Zombies, die die Gefahrenlinie erreichen, sind durchgebrochen: je 1 Leben weg */
+function checkDanger() {
+  var breach = 0;
+  for (var i = zombies.length - 1; i >= 0; i--) {
+    var z = zombies[i];
+    if (z.y + z.h >= DANGER_Y) {
+      breach++;
+      for (var p = 0; p < 10; p++) {
+        var ang = Math.PI / 2 + (Math.random() - 0.5), sp2 = 30 + Math.random() * 120;
+        particles.push({
+          x: z.x + z.w / 2, y: DANGER_Y,
+          vx: Math.cos(ang) * sp2, vy: -Math.abs(Math.sin(ang)) * sp2,
+          life: 0.35 + Math.random() * 0.3, max: 0.65,
+          color: '#e05252'
+        });
+      }
+      zombies.splice(i, 1);
+    }
   }
-  if (danger) {
-    for (var k = 0; k < zombies.length; k++) zombies[k].y = Math.max(60, zombies[k].y - 72);
-    loseLife('Die Horde hat die Linie erreicht!');
+  if (breach > 0) {
+    hp -= breach;
+    if (hp <= 0) { updateHud(); gameOver(); return; }
+    updateHud();
+    flashBanner(breach === 1 ? 'Durchgebrochen! −1 ❤' : 'Durchgebrochen! −' + breach + ' ❤');
   }
 }
 
@@ -215,9 +241,9 @@ function gameOver() {
   state = 'over';
   var isRecord = score > best;
   if (isRecord) { best = score; store.setItem('atz_best', String(best)); }
-  finishedRun = { score: score, wave: wave, kills: kills, saved: false };
+  finishedRun = { score: score, wave: level, kills: kills, saved: false };
   $('ovTitle').textContent = '🧟 Überwältigt!';
-  $('ovText').innerHTML = score + ' Punkte · Welle ' + wave + ' · ' + kills + ' Kills' + (isRecord ? '<br><b>Neuer Bestwert! 🏆</b>' : '');
+  $('ovText').innerHTML = score + ' Punkte · Welle ' + level + ' · ' + kills + ' Kills' + (isRecord ? '<br><b>Neuer Bestwert! 🏆</b>' : '');
   $('btnStart').textContent = 'Nochmal spielen';
   $('btnSave').textContent = 'Highscore in mein Repo speichern';
   $('btnSave').disabled = false;
@@ -254,15 +280,6 @@ function killZombie(z) {
     for (var e = 0; e < DROP_KINDS.length; e++) if (DROP_KINDS[e].kind === kind) icon = DROP_KINDS[e].icon;
     drops.push({ x: z.x + z.w / 2, y: z.y + z.h / 2, kind: kind, icon: icon });
   }
-  /* Welle geschafft? */
-  if (zombies.length === 0) {
-    wave++;
-    score += 50;
-    spawnHorde(wave);
-    stepTimer = 0;
-    flashBanner('Welle ' + wave + ' · +50');
-    updateHud();
-  }
 }
 
 function applyDrop(kind) {
@@ -280,7 +297,7 @@ function applyDrop(kind) {
     }
   }
   else if (kind === 'life') { hp = Math.min(3, hp + 1); updateHud(); }
-  else if (kind === 'skull') { hordeDown(24); }
+  else if (kind === 'skull') { pushHordeDown(60); }
 }
 
 function update(dt) {
@@ -288,13 +305,23 @@ function update(dt) {
   paddle.wideTimer = Math.max(0, paddle.wideTimer - dt);
   var pw = PADDLE_W * (paddle.wideTimer > 0 ? 1.5 : 1);
 
-  /* Horde kriecht */
-  stepTimer += dt;
-  if (stepTimer >= stepEvery()) {
-    stepTimer = 0;
-    hordeDown(24);
-    if (state !== 'playing') return;
+  /* Endlos-Strom: Zombies scrollen durchgehend, neue Reihen rutschen von oben nach */
+  gameTime += dt;
+  var lvl = 1 + Math.floor(gameTime / 40);
+  if (lvl !== level) {
+    level = lvl;
+    flashBanner('Welle ' + level);
+    updateHud();
   }
+  var sc = scrollSpeed();
+  for (var zi0 = 0; zi0 < zombies.length; zi0++) zombies[zi0].y += sc * dt;
+  rowTimer -= dt;
+  if (rowTimer <= 0) {
+    rowTimer += rowEvery();
+    spawnRow();
+  }
+  checkDanger();
+  if (state !== 'playing') return;
 
   /* Bälle */
   for (var i = balls.length - 1; i >= 0; i--) {
@@ -511,7 +538,7 @@ function draw() {
 
 /* ============== HUD ============== */
 function updateHud() {
-  $('hudWave').textContent = wave;
+  $('hudWave').textContent = level;
   $('hudScore').textContent = Math.max(best, score);
   $('hudLives').textContent = '❤'.repeat(hp) + '🖤'.repeat(Math.max(0, 3 - hp));
   $('hudBest').textContent = Math.max(best, score);
