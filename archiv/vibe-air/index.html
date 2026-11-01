@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<title>VibeAir – Pixel Airline Tycoon</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: "Courier New", ui-monospace, monospace; background: #0d1117; color: #e6edf3; display: flex; flex-direction: column; align-items: center; min-height: 100dvh; }
+  header { width: 100%; max-width: 980px; padding: 8px 10px 4px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+  h1 { margin: 0; font-size: 1.05rem; letter-spacing: 1px; color: #7ee787; text-shadow: 2px 2px 0 #14421c; }
+  #hud { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .hudbox { background: #161b22; border: 3px solid #30363d; box-shadow: inset -3px -3px 0 rgba(0,0,0,.4), inset 3px 3px 0 rgba(255,255,255,.05); padding: 4px 8px; font-size: .78rem; white-space: nowrap; }
+  .hudbox b { color: #ffd76a; }
+  .spd { padding: 4px 8px; font-family: inherit; font-size: .78rem; font-weight: 700; background: #21262d; color: #e6edf3; border: 3px solid #30363d; box-shadow: inset -3px -3px 0 rgba(0,0,0,.4), inset 3px 3px 0 rgba(255,255,255,.05); cursor: pointer; }
+  .spd.on { background: #2ea043; color: #fff; border-color: #3fb950; }
+  #gameWrap { position: relative; width: min(calc(100% - 16px), 980px, calc((100dvh - 300px) * 1.7778)); min-width: 300px; }
+  canvas { display: block; width: 100%; border: 3px solid #30363d; box-shadow: inset -3px -3px 0 rgba(0,0,0,.4); background: #0a1c33; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; border-radius: 2px; }
+  #tabs { width: min(calc(100% - 16px), 980px); display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .tab { flex: 1 1 auto; padding: 8px 6px; font-family: inherit; font-size: .8rem; font-weight: 700; text-align: center; background: #161b22; color: #9ba8b4; border: 3px solid #30363d; box-shadow: inset -3px -3px 0 rgba(0,0,0,.4), inset 3px 3px 0 rgba(255,255,255,.05); cursor: pointer; touch-action: manipulation; }
+  .tab.on { background: #2ea043; color: #fff; border-color: #3fb950; }
+  #panel { width: min(calc(100% - 16px), 980px); margin: 6px 0 20px; background: #161b22; border: 3px solid #30363d; box-shadow: inset -3px -3px 0 rgba(0,0,0,.4), inset 3px 3px 0 rgba(255,255,255,.05); padding: 10px; max-height: 46dvh; overflow-y: auto; font-size: .82rem; }
+  #panel h3 { margin: 2px 0 8px; font-size: .9rem; color: #7ee787; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; padding: 6px 8px; margin-bottom: 6px; background: #0d1117; border: 2px solid #21262d; }
+  .row .sub { color: #9ba8b4; font-size: .74rem; width: 100%; }
+  button.act { font-family: inherit; font-weight: 700; font-size: .76rem; padding: 7px 10px; background: #2ea043; color: #fff; border: 3px solid #3fb950; box-shadow: inset -2px -2px 0 rgba(0,0,0,.35); cursor: pointer; touch-action: manipulation; }
+  button.act:active { transform: translate(2px,2px); box-shadow: none; }
+  button.act.secondary { background: #30363d; border-color: #444c56; }
+  button.act.danger { background: #b62324; border-color: #da3633; }
+  button.act:disabled { background: #21262d; border-color: #30363d; color: #6e7a86; cursor: default; }
+  input[type=range] { width: 140px; accent-color: #2ea043; }
+  select { font-family: inherit; background: #0d1117; color: #e6edf3; border: 2px solid #30363d; padding: 5px; font-size: .78rem; max-width: 46vw; }
+  .bar { width: 110px; height: 10px; background: #0d1117; border: 2px solid #30363d; display: inline-block; vertical-align: middle; }
+  .bar i { display: block; height: 100%; background: #2ea043; }
+  .bar i.warn { background: #e3b341; }
+  .bar i.bad { background: #da3633; }
+  #log div { padding: 3px 6px; border-bottom: 1px dashed #21262d; line-height: 1.5; }
+  #log .d { color: #6e7a86; margin-right: 6px; }
+  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(10,14,19,.94); z-index: 10; text-align: center; padding: 20px; }
+  #overlay[hidden] { display: none; }
+  #overlay .box { background: #161b22; border: 4px solid #3fb950; box-shadow: inset -4px -4px 0 rgba(0,0,0,.4), 8px 8px 0 rgba(0,0,0,.5); padding: 18px 20px; max-width: 560px; }
+  #overlay h2 { margin: 0 0 8px; color: #7ee787; font-size: 1.2rem; }
+  #overlay p { margin: 0 0 10px; font-size: .82rem; line-height: 1.7; color: #c7d1d9; text-align: left; }
+  #overlay button { font-family: inherit; font-weight: 700; font-size: .9rem; padding: 10px 16px; margin: 4px; background: #2ea043; color: #fff; border: 3px solid #3fb950; box-shadow: inset -2px -2px 0 rgba(0,0,0,.35); cursor: pointer; }
+  #overlay button.secondary { background: #30363d; border-color: #444c56; }
+  footer { color: #6e7a86; font-size: .7rem; padding: 0 16px 14px; text-align: center; }
+  .ms.done { color: #7ee787; }
+  .ms { color: #6e7a86; }
+</style>
+</head>
+<body>
+<header>
+  <h1>✈ VibeAir</h1>
+  <div id="hud">
+    <span class="hudbox">💰 <b id="hGeld">–</b></span>
+    <span class="hudbox">📅 <b id="hTag">–</b></span>
+    <span class="hudbox">⭐ <b id="hRuf">–</b></span>
+    <span class="hudbox">✈ <b id="hFlotte">–</b></span>
+    <span class="hudbox">🛫 <b id="hRouten">–</b></span>
+    <button class="spd" data-act="speed" data-v="0">⏸</button>
+    <button class="spd on" data-act="speed" data-v="1">▶</button>
+    <button class="spd" data-act="speed" data-v="4">⏩</button>
+  </div>
+</header>
+
+<div id="gameWrap"><canvas id="game" width="480" height="270"></canvas></div>
+
+<div id="tabs">
+  <button class="tab on" data-act="tab" data-v="airports">🏢 Flughäfen</button>
+  <button class="tab" data-act="tab" data-v="routes">🛫 Strecken</button>
+  <button class="tab" data-act="tab" data-v="fleet">✈ Flotte</button>
+  <button class="tab" data-act="tab" data-v="log">📰 Log</button>
+  <button class="tab" data-act="tab" data-v="menu">☰ Menü</button>
+</div>
+<div id="panel"></div>
+
+<div id="overlay">
+  <div class="box">
+    <h2 id="ovTitle">✈ VibeAir</h2>
+    <p id="ovText">Pixel-Airline-Tycoon fürs Handy.<br><br>
+    • Tippe auf einen <b>eigenen Flughafen</b> auf der Karte und eröffne Strecken<br>
+    • Kaufe Flugzeuge, lege Ticketpreise fest, beobachte die Auslastung<br>
+    • Achte auf Treibstoff, Wartung, Crew und deinen Ruf ⭐<br>
+    • Zufallsereignisse können helfen oder schaden – bleib solvent!<br>
+    • Ziel: zur <b>Weltmarktführerin</b> (1 Mrd. € Vermögen) aufsteigen 🏆<br><br>
+    ⏸ ▶ ⏩ steuert die Zeit. Der Spielstand wird automatisch lokal gespeichert.</p>
+    <button id="btnStart">Neues Spiel starten</button>
+    <button id="btnContinue" class="secondary" hidden>Weiterspielen</button>
+  </div>
+</div>
+
+<footer>VibeAir – Archiv-Spiel aus dem at-zombies-Repo · reines HTML/CSS/JS, kein Backend · Spielstand liegt nur lokal in deinem Browser (localStorage)</footer>
+
+<script>
+"use strict";
+const SAVE_KEY = "vibeair_save_v1";
+const DAY_SECONDS = 1.2;
+const W = 480, H = 270, CELL = 6, COLS = W / CELL, ROWS = H / CELL;
+const LON0 = -130, LON1 = 150, LAT0 = 75, LAT1 = -60;
+
+const LAND = [
+  [-100,42,35,25],[-42,71,12,5],[-60,-15,16,22],[12,50,22,15],[25,2,18,33],
+  [95,48,45,20],[78,22,8,10],[105,10,16,16],[139,37,4,7],[-2,54,3,4],
+  [114,-4,10,4],[137,-28,17,12],[171,-41,4,5],[47,-20,2.5,4],[45,30,12,10],[-18,65,4,2]
+];
+
+const AIRPORTS = [
+  {c:"FRA",n:"Frankfurt",lon:8.6,lat:50.0,cost:0},
+  {c:"MUC",n:"München",lon:11.6,lat:48.4,cost:60000},
+  {c:"BER",n:"Berlin",lon:13.4,lat:52.4,cost:60000},
+  {c:"HAM",n:"Hamburg",lon:10.0,lat:53.6,cost:55000},
+  {c:"LHR",n:"London",lon:-0.5,lat:51.5,cost:150000},
+  {c:"CDG",n:"Paris",lon:2.5,lat:49.0,cost:140000},
+  {c:"AMS",n:"Amsterdam",lon:4.8,lat:52.3,cost:120000},
+  {c:"ZRH",n:"Zürich",lon:8.5,lat:47.5,cost:130000},
+  {c:"VIE",n:"Wien",lon:16.6,lat:48.1,cost:110000},
+  {c:"CPH",n:"Kopenhagen",lon:12.7,lat:55.6,cost:90000},
+  {c:"OSL",n:"Oslo",lon:10.8,lat:59.9,cost:90000},
+  {c:"HEL",n:"Helsinki",lon:24.9,lat:60.3,cost:90000},
+  {c:"MAD",n:"Madrid",lon:-3.6,lat:40.5,cost:100000},
+  {c:"FCO",n:"Rom",lon:12.2,lat:41.8,cost:100000},
+  {c:"ATH",n:"Athen",lon:23.7,lat:38.0,cost:95000},
+  {c:"IST",n:"Istanbul",lon:28.9,lat:41.0,cost:120000},
+  {c:"CAI",n:"Kairo",lon:31.4,lat:30.1,cost:200000},
+  {c:"JNB",n:"Johannesburg",lon:28.2,lat:-26.1,cost:350000},
+  {c:"DXB",n:"Dubai",lon:55.3,lat:25.2,cost:350000},
+  {c:"DEL",n:"Delhi",lon:77.1,lat:28.6,cost:380000},
+  {c:"JFK",n:"New York",lon:-73.8,lat:40.6,cost:400000},
+  {c:"YYZ",n:"Toronto",lon:-79.4,lat:43.7,cost:300000},
+  {c:"LAX",n:"Los Angeles",lon:-118.4,lat:34.0,cost:450000},
+  {c:"MEX",n:"Mexiko-Stadt",lon:-99.1,lat:19.4,cost:280000},
+  {c:"GRU",n:"São Paulo",lon:-46.6,lat:-23.5,cost:320000},
+  {c:"EZE",n:"Buenos Aires",lon:-58.4,lat:-34.6,cost:300000},
+  {c:"BKK",n:"Bangkok",lon:100.5,lat:13.7,cost:400000},
+  {c:"SIN",n:"Singapur",lon:103.8,lat:1.35,cost:420000},
+  {c:"HKG",n:"Hongkong",lon:114.2,lat:22.3,cost:450000},
+  {c:"PEK",n:"Peking",lon:116.4,lat:39.9,cost:480000},
+  {c:"ICN",n:"Seoul",lon:126.4,lat:37.5,cost:500000},
+  {c:"NRT",n:"Tokio",lon:140.4,lat:35.8,cost:550000},
+  {c:"SYD",n:"Sydney",lon:151.2,lat:-33.8,cost:600000},
+  {c:"AKL",n:"Auckland",lon:174.8,lat:-37.0,cost:650000}
+];
+
+const PLANES = [
+  {id:"hopper", n:"Pixelhopper", cap:19,  range:800,  price:80000,   speed:380},
+  {id:"dash",   n:"Dashy",       cap:50,  range:1500, price:250000,  speed:500},
+  {id:"a320",   n:"Jetling A320",cap:150, range:4000, price:1200000, speed:800},
+  {id:"b737",   n:"Boomy 737",   cap:186, range:5500, price:2800000, speed:850},
+  {id:"a330",   n:"Widey A330",  cap:300, range:9000, price:8000000, speed:900},
+  {id:"b747",   n:"Jumbo 747",   cap:416, range:13500,price:16000000,speed:950}
+];
+const planeResale = t => Math.round(planeType(t).price * 0.6);
+
+const MILESTONES = [
+  [1e6,  "🏙️ Regional Player (1 Mio. €)"],
+  [1e7,  "🇪🇺 Europa-Airline (10 Mio. €)"],
+  [1e8,  "🌍 Interkontinental (100 Mio. €)"],
+  [1e9,  "🏆 Weltmarktführer (1 Mrd. €)"]
+];
+
+const EVENTS = [
+  {w:3, minDay:5,  t:"⛽ Ölpreis explodiert! Treibstoff 50% teurer (10 Tage).", f:s=>{s.mods.oilUntil=s.day+10;}},
+  {w:2, minDay:3,  t:"🥊 Streik! 3 Tage nur 60% Passagiere, Ruf −4.", f:s=>{s.mods.strikeUntil=s.day+3; s.ruf-=4;}},
+  {w:3, minDay:2,  t:"📰 Presse lobt deine Airline! Ruf +5.", f:s=>{s.ruf+=5;}},
+  {w:2, minDay:10, t:"📰 Schlechte Presse nach Verspätungen. Ruf −6.", f:s=>{s.ruf-=6;}},
+  {w:1, minDay:8,  t:"🎰 Bonuszahlung des Flughafens: +15.000 €.", f:s=>{s.geld+=15000;}},
+  {w:2, minDay:15, t:"🧾 Steuerprüfung: −20.000 €.", f:s=>{s.geld-=20000;}},
+  {w:2, minDay:6,  t:"🌬️ Jetstream! 5 Tage +15% Einnahmen.", f:s=>{s.mods.jetUntil=s.day+5;}},
+  {w:2, minDay:8,  t:"🐦 Vogelschwarm! Ein Flugzeug fällt 2 Tage aus (Reparatur).", c:s=>s.planes.some(p=>p.status==="ok"), f:s=>{const p=s.planes.find(p=>p.status==="ok"); if(p){p.status="repair"; p.repairDays=2; p.repairCost=Math.round(planeType(p.type).price*0.03); s.geld-=p.repairCost;}}},
+  {w:1, minDay:12, t:"🤵 VIP-Charterflug: +30.000 €.", f:s=>{s.geld+=30000;}},
+  {w:1, minDay:20, t:"🛩️ Ein reicher Sammler kauft eine alte Maschine: +40.000 €.", c:s=>s.planes.length>2, f:s=>{s.geld+=40000;}}
+];
+
+const fmt = new Intl.NumberFormat("de-DE");
+const eur = v => fmt.format(Math.round(v)) + " €";
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const rnd = (a,b) => a + Math.random()*(b-a);
+
+function proj(lon, lat){ return [ (lon-LON0)/(LON1-LON0)*W, (LAT0-lat)/(LAT0-LAT1)*H ]; }
+function distKm(a, b){
+  const R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLon=(b.lon-a.lon)*Math.PI/180;
+  const h=Math.sin(dLat/2)**2 + Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+const airport = c => AIRPORTS.find(a=>a.c===c);
+const planeType = id => PLANES.find(p=>p.id===id);
+
+let S = null;
+let curTab = "airports";
+let selAirport = null;
+let pendingFrom = null;
+let timeScale = 1;
+let acc = 0, lastT = 0, running = false;
+
+function newGame(){
+  S = {
+    geld: 300000, day: 1, ruf: 50, timeScale: 1,
+    airports: ["FRA"],
+    planes: [{uid:1, type:"dash", cond:100, status:"ok", repairDays:0, repairCost:0, route:null}],
+    routes: [],
+    log: [],
+    mods: {oilUntil:0, strikeUntil:0, jetUntil:0},
+    reached: [],
+    nextUid: 2, nextRoute: 1,
+    over: false
+  };
+  selAirport = "FRA"; pendingFrom = null; curTab = "airports";
+  addLog("✈️ Willkommen bei VibeAir! Du startest mit 300.000 € und einer Dashy in Frankfurt.");
+  addLog("💡 Tippe auf FRA und eröffne deine erste Strecke.");
+  save();
+}
+
+function addLog(t){ S.log.unshift({day:S.day, t}); if(S.log.length>80) S.log.length=80; }
+
+function save(){
+  if(!S) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch(e){}
+}
+function loadSave(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || typeof s.geld !== "number" || !Array.isArray(s.routes)) return null;
+    return s;
+  } catch(e){ return null; }
+}
+
+function vermosgen(){ return S.geld + S.planes.reduce((a,p)=>a+planeResale(p.type),0); }
+
+function simDay(){
+  if(S.over) return;
+  S.day++;
+  const oil = S.day < S.mods.oilUntil ? 1.5 : 1;
+  const strike = S.day < S.mods.strikeUntil ? 0.6 : 1;
+  const jet = S.day < S.mods.jetUntil ? 1.15 : 1;
+  let dayRev = 0, dayCost = 500 + S.routes.length*300, loads = [];
+  for(const r of S.routes){
+    const a = airport(r.from), b = airport(r.to);
+    const d = Math.round(distKm(a,b));
+    r.dist = d;
+    const p = S.planes.find(x=>x.uid===r.plane);
+    if(!p || p.status!=="ok" || !planeType(p.type) || d > planeType(p.type).range){
+      r.lastLoad = 0; r.lastRev = 0;
+      if(p && d > planeType(p.type).range) addLog(`⚠️ ${a.c}→${b.c}: Reichweite der ${planeType(p.type).n} reicht nicht (${fmt.format(d)} km).`);
+      continue;
+    }
+    const t = planeType(p.type);
+    const fluege = (d*2/t.speed) <= 20 ? 2 : 1;
+    const fair = 20 + d*0.11;
+    const demand = d/12 * rnd(0.8,1.2);
+    const preisF = clamp(2.2 - r.price/fair, 0.05, 2.2);
+    const rufF = 0.5 + S.ruf/100;
+    let pax = clamp(demand/fluege * preisF * rufF * strike * rnd(0.7,1.3), 0, t.cap);
+    const einn = pax * r.price * fluege * jet;
+    const treib = d * fluege * 0.9 * oil;
+    const crew = pax * 4;
+    const wart = t.price/6000;
+    dayRev += einn - treib - crew - wart;
+    r.lastLoad = pax/t.cap; r.lastRev = einn - treib - crew - wart;
+    loads.push(r.lastLoad);
+    p.cond -= 2*fluege;
+    if(p.cond < 25 && Math.random() < 0.35){
+      p.status = "repair"; p.repairDays = 3; p.repairCost = Math.round(t.price*0.05);
+      S.geld -= p.repairCost;
+      addLog(`🔧 Panne! ${t.n} auf ${a.c}→${b.c} fällt 3 Tage aus. Reparatur: −${eur(p.repairCost)}.`);
+    } else if(p.cond <= 0){
+      p.cond = 5;
+    }
+  }
+  for(const p of S.planes){
+    if(p.status==="repair"){
+      p.repairDays--;
+      if(p.repairDays<=0){ p.status="ok"; p.cond=100; addLog(`✅ Reparatur fertig: ${planeType(p.type).n} wieder einsatzbereit.`); }
+    }
+  }
+  S.geld += dayRev - dayCost;
+  if(loads.length) S.ruf = clamp(S.ruf + (loads.reduce((a,b)=>a+b,0)/loads.length - 0.45)*0.5, 0, 100);
+  if(Math.random() < 0.18){
+    const pool = EVENTS.filter(e=>S.day >= (e.minDay||1) && (!e.c || e.c(S)));
+    if(pool.length){
+      let sum = pool.reduce((a,e)=>a+e.w,0), pick = Math.random()*sum, ev = pool[0];
+      for(const e of pool){ pick -= e.w; if(pick<=0){ ev=e; break; } }
+      ev.f(S); addLog(ev.t);
+    }
+  }
+  S.ruf = clamp(S.ruf, 0, 100);
+  for(const [val, label] of MILESTONES){
+    if(vermosgen() >= val && !S.reached.includes(val)){
+      S.reached.push(val);
+      addLog("🎉 Meilenstein erreicht: " + label);
+    }
+  }
+  if(S.day % 5 === 0) save();
+  if(S.geld < -50000 && !S.over){
+    S.over = true;
+    save();
+    showGameOver();
+  }
+}
+
+const cv = document.getElementById("game");
+const ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+function landAt(x, y){
+  const lon = LON0 + x/COLS*(LON1-LON0);
+  const lat = LAT0 - y/ROWS*(LAT0-LAT1);
+  for(const [cx,cy,rx,ry] of LAND){
+    const dx=(lon-cx)/rx, dy=(lat-cy)/ry;
+    if(dx*dx+dy*dy <= 1) return true;
+  }
+  return false;
+}
+
+function drawMap(){
+  ctx.fillStyle = "#0a1c33";
+  ctx.fillRect(0,0,W,H);
+  for(let y=0; y<ROWS; y++){
+    for(let x=0; x<COLS; x++){
+      const h = (x*73 + y*151) % 97;
+      if(landAt(x,y)){
+        ctx.fillStyle = h%3===0 ? "#2f5c30" : (h%3===1 ? "#274b2a" : "#22421f");
+      } else {
+        ctx.fillStyle = h%5===0 ? "#0d2340" : "#0a1c33";
+      }
+      ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+    }
+  }
+  ctx.fillStyle = "rgba(255,255,255,0.04)";
+  for(let x=0; x<=COLS; x+=5) ctx.fillRect(x*CELL, 0, 1, H);
+  for(let y=0; y<=ROWS; y+=5) ctx.fillRect(0, y*CELL, W, 1);
+}
+
+function drawRoutes(now){
+  for(const r of S.routes){
+    const a = airport(r.from), b = airport(r.to);
+    const [x1,y1] = proj(a.lon,a.lat), [x2,y2] = proj(b.lon,b.lat);
+    const p = S.planes.find(x=>x.uid===r.plane);
+    const load = r.lastLoad ?? 0;
+    const broken = !p || p.status !== "ok";
+    ctx.strokeStyle = broken ? "rgba(155,168,180,0.35)" : (load>0.75 ? "#7ee787" : load>0.4 ? "#e3b341" : "#da3633");
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    ctx.setLineDash([]);
+    if(p && p.status==="ok" && r.dist && r.dist <= planeType(p.type).range){
+      r.anim = ((r.anim||0) + (now-lastT)/1000 * timeScale * planeType(p.type).speed / (r.dist*2 || 1)) % 1;
+      const t = r.anim < 0.5 ? r.anim*2 : (1-r.anim)*2;
+      const px = x1 + (x2-x1)*t, py = y1 + (y2-y1)*t;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(px-3, py-1, 6, 2);
+      ctx.fillRect(px-1, py-3, 2, 6);
+      ctx.fillStyle = "#ffd76a";
+      ctx.fillRect(px-1, py-1, 2, 2);
+    }
+  }
+}
+
+function drawAirports(now){
+  for(const a of AIRPORTS){
+    const [x,y] = proj(a.lon,a.lat);
+    const own = S.airports.includes(a.c);
+    ctx.fillStyle = own ? "#ffd76a" : "#6e7a86";
+    ctx.fillRect(x-2, y-4, 4, 8);
+    ctx.fillRect(x-4, y+2, 8, 2);
+    if(own && Math.floor(now/500)%2===0){ ctx.fillStyle="#da3633"; ctx.fillRect(x-1,y-6,2,2); }
+    if(selAirport===a.c){
+      ctx.strokeStyle = "#7ee787"; ctx.lineWidth = 2;
+      ctx.strokeRect(x-6, y-8, 12, 14);
+    }
+    ctx.fillStyle = own ? "#e6edf3" : "#9ba8b4";
+    ctx.font = "7px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(a.c, x, y+11);
+  }
+}
+
+function render(){
+  const now = performance.now();
+  drawMap();
+  if(S){ drawRoutes(now); drawAirports(now); }
+  lastT = now;
+}
+
+function loop(t){
+  requestAnimationFrame(loop);
+  if(!S || !running) { lastT = t; render(); return; }
+  acc += (t - lastT)/1000 * timeScale;
+  let steps = 0;
+  while(acc >= DAY_SECONDS && steps < 8){ acc -= DAY_SECONDS; simDay(); steps++; }
+  if(steps) renderAll();
+  lastT = t;
+  render();
+}
+
+const $ = id => document.getElementById(id);
+
+function renderHUD(){
+  $("hGeld").textContent = eur(S.geld);
+  $("hGeld").style.color = S.geld < 0 ? "#da3633" : "#ffd76a";
+  $("hTag").textContent = "Tag " + S.day + " · " + ["Mo","Di","Mi","Do","Fr","Sa","So"][S.day%7];
+  $("hRuf").textContent = Math.round(S.ruf) + "/100";
+  $("hFlotte").textContent = S.planes.length;
+  $("hRouten").textContent = S.routes.length + "/" + S.airports.length;
+  document.querySelectorAll(".spd").forEach(b => b.classList.toggle("on", +b.dataset.v === timeScale));
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function renderPanel(){
+  const p = $("panel");
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.v === curTab));
+  if(curTab === "airports"){
+    let html = "<h3>🏢 Flughäfen</h3>";
+    if(selAirport){
+      const a = airport(selAirport), own = S.airports.includes(a.c);
+      html += `<div class="row"><div><b>${a.c} – ${esc(a.n)}</b><div class="sub">${own ? "✅ eigene Basis" : "Lizenz kostet " + eur(a.cost)}</div></div>`;
+      if(own){
+        html += `<button class="act" data-act="openRoutes" data-v="${a.c}">🛫 Strecke eröffnen</button>`;
+      } else {
+        html += `<button class="act" data-act="buyAirport" data-v="${a.c}" ${S.geld<a.cost?"disabled":""}>Kaufen ${eur(a.cost)}</button>`;
+      }
+      html += "</div>";
+      if(pendingFrom === a.c){
+        html += "<div class='row'><div class='sub'>Ziel wählen (Gebühr = 3.000 € + 8 €/km):</div></div>";
+        for(const b of AIRPORTS){
+          if(!S.airports.includes(b.c) || b.c === pendingFrom) continue;
+          if(S.routes.some(r => (r.from===pendingFrom&&r.to===b.c)||(r.from===b.c&&r.to===pendingFrom))) continue;
+          const d = Math.round(distKm(airport(pendingFrom), b));
+          const fee = Math.round(3000 + d*8);
+          html += `<div class="row"><div><b>${pendingFrom} → ${b.c}</b> <span class="sub">${esc(b.n)} · ${fmt.format(d)} km · Gebühr ${eur(fee)}</span></div><button class="act" data-act="mkRoute" data-v="${pendingFrom}|${b.c}" ${S.geld<fee?"disabled":""}>Eröffnen</button></div>`;
+        }
+        html += `<div class="row"><button class="act secondary" data-act="cancelRoutes">Abbrechen</button></div>`;
+      }
+    }
+    html += "<h3>Eigene Basen</h3>";
+    for(const c of S.airports){
+      const a = airport(c);
+      html += `<div class="row"><div><b>${a.c} – ${esc(a.n)}</b><div class="sub">${S.routes.filter(r=>r.from===c||r.to===c).length} Strecke(n)</div></div><button class="act secondary" data-act="selAirport" data-v="${c}">Anzeigen</button></div>`;
+    }
+    html += "<h3>Verfügbare Lizenzen</h3>";
+    for(const a of AIRPORTS){
+      if(S.airports.includes(a.c)) continue;
+      html += `<div class="row"><div><b>${a.c} – ${esc(a.n)}</b></div><button class="act" data-act="buyAirport" data-v="${a.c}" ${S.geld<a.cost?"disabled":""}>${eur(a.cost)}</button></div>`;
+    }
+    p.innerHTML = html;
+  }
+  else if(curTab === "routes"){
+    let html = "<h3>🛫 Strecken</h3>";
+    if(!S.routes.length) html += "<div class='row'><div class='sub'>Noch keine Strecken. Eröffne eine über einen eigenen Flughafen (Tab „Flughäfen“ oder Tipp auf die Karte).</div></div>";
+    for(const r of S.routes){
+      const a = airport(r.from), b = airport(r.to);
+      const d = r.dist || Math.round(distKm(a,b));
+      const p = S.planes.find(x=>x.uid===r.plane);
+      const free = S.planes.filter(x=>!x.route && x.uid!==r.plane && x.status==="ok");
+      const loadPct = Math.round((r.lastLoad||0)*100);
+      let opts = `<option value="">— ohne Flugzeug —</option>`;
+      if(p) opts += `<option value="${p.uid}" selected>${esc(planeType(p.type).n)} (${p.cond}%${p.status==="repair"?", 🔧":""})</option>`;
+      for(const f of free) opts += `<option value="${f.uid}">${esc(planeType(f.type).n)} (${f.cond}%)</option>`;
+      html += `<div class="row"><div><b>${a.c} → ${b.c}</b> <span class="sub">${fmt.format(d)} km · Auslastung ${loadPct}% · Ø ${eur(r.lastRev||0)}/Tag</span>
+        <span class="sub">Ticketpreis: <b>${eur(r.price)}</b> <input type="range" min="20" max="600" step="5" value="${r.price}" data-act="price" data-v="${r.id}"> Flugzeug: <select data-act="setPlane" data-v="${r.id}">${opts}</select></span></div>
+        <button class="act danger" data-act="closeRoute" data-v="${r.id}">Schließen</button></div>`;
+    }
+    p.innerHTML = html;
+  }
+  else if(curTab === "fleet"){
+    let html = "<h3>✈ Eigene Flotte</h3>";
+    if(!S.planes.length) html += "<div class='row'><div class='sub'>Keine Flugzeuge.</div></div>";
+    for(const p of S.planes){
+      const t = planeType(p.type);
+      const cls = p.cond>60 ? "" : p.cond>30 ? "warn" : "bad";
+      html += `<div class="row"><div><b>${esc(t.n)}</b> <span class="sub">${t.cap} Sitze · ${fmt.format(t.range)} km · Zustand <span class="bar"><i class="${cls}" style="width:${clamp(p.cond,0,100)}%"></i></span> ${Math.round(p.cond)}% ${p.status==="repair" ? "· 🔧 Reparatur noch "+p.repairDays+" Tag(e), −"+eur(p.repairCost) : ""}</span></div><button class="act secondary" data-act="sellPlane" data-v="${p.uid}">Verkaufen +${eur(planeResale(p.type))}</button></div>`;
+    }
+    html += "<h3>🛒 Flugzeug-Markt</h3>";
+    for(const t of PLANES){
+      html += `<div class="row"><div><b>${esc(t.n)}</b><div class="sub">${t.cap} Sitze · Reichweite ${fmt.format(t.range)} km · ${t.speed} km/h</div></div><button class="act" data-act="buyPlane" data-v="${t.id}" ${S.geld<t.price?"disabled":""}>Kaufen ${eur(t.price)}</button></div>`;
+    }
+    p.innerHTML = html;
+  }
+  else if(curTab === "log"){
+    p.innerHTML = "<h3>📰 Log</h3><div id='log'>" + S.log.map(l => `<div><span class="d">T${l.day}</span>${esc(l.t)}</div>`).join("") + "</div>";
+  }
+  else if(curTab === "menu"){
+    const ms = MILESTONES.map(([v,l]) => `<div class="ms ${S.reached.includes(v)?"done":""}">${S.reached.includes(v)?"✅":"⬜"} ${esc(l)} — Vermögen: ${eur(vermosgen())}</div>`).join("");
+    p.innerHTML = `<h3>☰ Menü</h3>
+      <div class="row"><div><b>Spielstand</b><div class="sub">Tag ${S.day} · ${S.planes.length} Flugzeuge · ${S.routes.length} Strecken · Vermögen ${eur(vermosgen())}</div></div>
+      <div><button class="act" data-act="save">💾 Speichern</button> <button class="act secondary" data-act="load">📂 Laden</button> <button class="act danger" data-act="new">🔄 Neues Spiel</button></div></div>
+      <h3>🏅 Meilensteine</h3>${ms}
+      <h3>ℹ️ Spielziel</h3>
+      <div class="row"><div class="sub">Baue eine Airline von der Regional- zur Weltairline auf. Wenn dein Konto unter −50.000 € fällt, ist Konkurs. Ruf ⭐ erhöht die Auslastung. Niedriger Ticketpreis = mehr Passagiere, weniger Gewinn pro Sitz.</div></div>`;
+  }
+}
+
+function renderAll(){ if(S){ renderHUD(); renderPanel(); } }
+
+function showGameOver(){
+  running = false;
+  const ov = $("overlay");
+  $("ovTitle").textContent = "💥 Konkurs!";
+  $("ovText").innerHTML = `Deine Airline ist pleite (Konto: <b>${eur(S.geld)}</b>).<br><br>Tag ${S.day} · ${S.planes.length} Flugzeuge · ${S.routes.length} Strecken · Ruf ${Math.round(S.ruf)}/100<br>Meilensteine: ${S.reached.length ? S.reached.length + "/" + MILESTONES.length : "keine"}`;
+  $("btnStart").textContent = "Neu starten";
+  $("btnContinue").hidden = true;
+  ov.hidden = false;
+}
+
+function hideOverlay(){ $("overlay").hidden = true; }
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if(!b || !S) return;
+  const act = b.dataset.act, v = b.dataset.v;
+  if(act === "tab"){ curTab = v; renderPanel(); }
+  else if(act === "speed"){ timeScale = +v; renderHUD(); }
+  else if(act === "selAirport"){ selAirport = v; pendingFrom = null; curTab = "airports"; renderPanel(); }
+  else if(act === "buyAirport"){
+    const a = airport(v);
+    if(S.geld >= a.cost && !S.airports.includes(v)){
+      S.geld -= a.cost; S.airports.push(v); selAirport = v;
+      addLog(`🏢 Lizenz für ${v} (${a.n}) erworben: −${eur(a.cost)}.`);
+      save(); renderAll();
+    }
+  }
+  else if(act === "openRoutes"){ pendingFrom = v; renderPanel(); }
+  else if(act === "cancelRoutes"){ pendingFrom = null; renderPanel(); }
+  else if(act === "mkRoute"){
+    const [from, to] = v.split("|");
+    const d = Math.round(distKm(airport(from), airport(to)));
+    const fee = Math.round(3000 + d*8);
+    if(S.geld >= fee){
+      S.geld -= fee;
+      S.routes.push({id:S.nextRoute++, from, to, price: Math.round(20 + d*0.11), plane:null, dist:d, lastLoad:0, lastRev:0, anim:Math.random()});
+      addLog(`🛫 Strecke ${from} → ${to} eröffnet (${fmt.format(d)} km): −${eur(fee)}. Weise ein Flugzeug zu!`);
+      pendingFrom = null; curTab = "routes";
+      save(); renderAll();
+    }
+  }
+  else if(act === "closeRoute"){
+    const r = S.routes.find(x=>x.id === +v);
+    if(r){
+      if(r.plane){ const p = S.planes.find(x=>x.uid===r.plane); if(p) p.route = null; }
+      S.routes = S.routes.filter(x=>x.id !== +v);
+      addLog(`🛬 Strecke ${r.from} → ${r.to} geschlossen.`);
+      save(); renderAll();
+    }
+  }
+  else if(act === "sellPlane"){
+    const p = S.planes.find(x=>x.uid === +v);
+    if(p){
+      const r = S.routes.find(x=>x.plane === p.uid);
+      if(r) r.plane = null;
+      S.geld += planeResale(p.type);
+      S.planes = S.planes.filter(x=>x.uid !== p.uid);
+      addLog(`💶 ${planeType(p.type).n} verkauft: +${eur(planeResale(p.type))}.`);
+      save(); renderAll();
+    }
+  }
+  else if(act === "buyPlane"){
+    const t = planeType(v);
+    if(S.geld >= t.price){
+      S.geld -= t.price;
+      S.planes.push({uid:S.nextUid++, type:t.id, cond:100, status:"ok", repairDays:0, repairCost:0, route:null});
+      addLog(`✈️ ${t.n} gekauft: −${eur(t.price)}.`);
+      save(); renderAll();
+    }
+  }
+  else if(act === "save"){ save(); addLog("💾 Spielstand gespeichert."); renderPanel(); }
+  else if(act === "load"){
+    const s = loadSave();
+    if(s){ S = s; selAirport = S.airports[0]||null; pendingFrom = null; running = true; hideOverlay(); save(); renderAll(); addLog("📂 Spielstand geladen (Tag " + S.day + ")."); renderPanel(); }
+  }
+  else if(act === "new"){
+    if(confirm("Neues Spiel starten? Der aktuelle Spielstand wird überschrieben.")){
+      newGame(); running = true; hideOverlay(); renderAll();
+    }
+  }
+});
+
+document.addEventListener("input", e => {
+  const b = e.target.closest("[data-act]");
+  if(!b || !S) return;
+  if(b.dataset.act === "price"){
+    const r = S.routes.find(x=>x.id === +b.dataset.v);
+    if(r){ r.price = +b.value; renderPanel(); }
+  }
+});
+document.addEventListener("change", e => {
+  const b = e.target.closest("[data-act]");
+  if(!b || !S) return;
+  if(b.dataset.act === "setPlane"){
+    const r = S.routes.find(x=>x.id === +b.dataset.v);
+    if(!r) return;
+    if(r.plane){ const old = S.planes.find(x=>x.uid===r.plane); if(old) old.route = null; }
+    const uid = b.value === "" ? null : +b.value;
+    r.plane = uid;
+    if(uid){ const p = S.planes.find(x=>x.uid===uid); if(p) p.route = r.id; }
+    renderPanel();
+  }
+});
+
+cv.addEventListener("pointerdown", e => {
+  if(!S) return;
+  const rect = cv.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width * W;
+  const y = (e.clientY - rect.top) / rect.height * H;
+  let best = null, bd = 18;
+  for(const a of AIRPORTS){
+    const [ax, ay] = proj(a.lon, a.lat);
+    const d = Math.hypot(ax-x, ay-y);
+    if(d < bd){ bd = d; best = a; }
+  }
+  if(best){ selAirport = best.c; pendingFrom = null; curTab = "airports"; renderPanel(); }
+});
+
+$("btnStart").addEventListener("click", () => { newGame(); running = true; hideOverlay(); renderAll(); });
+$("btnContinue").addEventListener("click", () => {
+  const s = loadSave();
+  if(s){ S = s; selAirport = S.airports[0]||null; running = true; hideOverlay(); renderAll(); }
+});
+window.addEventListener("beforeunload", save);
+document.addEventListener("visibilitychange", () => { if(document.hidden) save(); });
+
+const saved = loadSave();
+if(saved) $("btnContinue").hidden = false;
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
