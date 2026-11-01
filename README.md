@@ -61,3 +61,9 @@ In der `index.html` oben im `CONFIG`-Block den `handleResolver` auf die eigene P
 
 Loopback-OAuth läuft ohne `client-metadata.json` (Refresh-Tokens sind dann bewusst nur
 ca. 1 Tag gültig).
+
+## Archiv
+
+- [`archiv/vibe-air/`](archiv/vibe-air/) – **VibeAir**, ein Pixel-Airline-Tycoon fürs Handy
+  (reines HTML/CSS/JS, eine Datei, lokaler Spielstand via `localStorage`). Erreichbar nach
+  dem Pages-Deploy unter `https://falksan.github.io/at-zombies/archiv/vibe-air/`.
